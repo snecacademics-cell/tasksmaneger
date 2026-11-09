@@ -80,8 +80,11 @@
         <label class="block text-sm font-medium mb-1">Assign To (Department)</label>
         <select id="targetDept" required class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50"></select>
 
-        <label class="block text-sm font-medium mb-1">Task Details</label>
-        <textarea id="taskDesc" rows="3" required placeholder="Type task description..." class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50"></textarea>
+        <label class="block text-sm font-medium mb-1">Task Title (Main Heading)</label>
+        <input type="text" id="taskTitle" required placeholder="e.g. Monthly Plan Preparation" class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50">
+
+        <label class="block text-sm font-medium mb-1">Details / Reference / Instructions</label>
+        <textarea id="taskDetails" rows="3" placeholder="e.g. Monthly plans for PG by Koya Faizy and Shabeer Faizy. Collect and verify." class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50"></textarea>
 
         <label class="block text-sm font-medium mb-1">Target Date</label>
         <input type="date" id="targetDate" required class="w-full p-2.5 border rounded-xl mb-5 bg-slate-50">
@@ -103,8 +106,11 @@
       <label class="block text-sm font-medium mb-1">Assign To (Department)</label>
       <select id="editTargetDept" class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50"></select>
 
-      <label class="block text-sm font-medium mb-1">Task Details</label>
-      <textarea id="editTaskDesc" rows="3" class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50"></textarea>
+      <label class="block text-sm font-medium mb-1">Task Title</label>
+      <input type="text" id="editTaskTitle" class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50">
+
+      <label class="block text-sm font-medium mb-1">Details / Reference</label>
+      <textarea id="editTaskDetails" rows="3" class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50"></textarea>
 
       <label class="block text-sm font-medium mb-1">Target Date</label>
       <input type="date" id="editTargetDate" class="w-full p-2.5 border rounded-xl mb-5 bg-slate-50">
@@ -119,7 +125,7 @@
     </div>
   </div>
 
-  <!-- ACTION MODAL (Complete / Postpone / Note) -->
+  <!-- ACTION MODAL -->
   <div id="actionModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
     <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
       <h3 id="actionModalTitle" class="text-lg font-bold mb-3">Update Task</h3>
@@ -141,7 +147,7 @@
     </div>
   </div>
 
-  <!-- CONTACTS & EDIT NUMBERS MODAL -->
+  <!-- CONTACTS MODAL -->
   <div id="contactsModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
     <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[85vh] flex flex-col">
       <h3 class="text-lg font-bold mb-1">Department WhatsApp Numbers</h3>
@@ -200,7 +206,7 @@
             ${d.phone ? `<a href="https://wa.me/${d.phone.replace(/[^0-9]/g,'')}" target="_blank" class="px-2 py-0.5 bg-green-500 text-white rounded font-bold">Chat</a>` : ''}
           </div>
           <div class="grid grid-cols-2 gap-2">
-            <input type="text" id="head_${d.id}" placeholder="Head Name" value="${d.head_name || ''}" class="p-1.5 border rounded bg-white">
+            <input type="text" id="head_${d.id}" placeholder="Head Name / Role" value="${d.head_name || ''}" class="p-1.5 border rounded bg-white">
             <input type="text" id="phone_${d.id}" placeholder="91XXXXXXXXXX" value="${d.phone || ''}" class="p-1.5 border rounded bg-white">
           </div>
           <button onclick="saveContact(${d.id})" class="self-end px-3 py-1 bg-blue-600 text-white rounded font-medium">Save Number</button>
@@ -305,25 +311,37 @@
         const receiver = departmentsData.find(d => d.name === t.assigned_to);
         const sender = departmentsData.find(d => d.name === t.assigned_by);
 
-        // WhatsApp Button Logic: എല്ലാ കാർഡിലും നിർബന്ധമായും ബട്ടൺ ഉണ്ടാകും
         let waBtn = '';
         const isSenderOrAdmin = (currentUser === t.assigned_by || currentUser === 'Admin');
 
+        // അഭിസംബോധനയും പേരും കൃത്യമാക്കുന്നു
+        const receiverHead = receiver?.head_name ? ` (${receiver.head_name})` : '';
+        const senderHead = sender?.head_name ? ` (${sender.head_name})` : '';
+
         if (isSenderOrAdmin) {
-          // റിസീവർക്ക് റിമൈൻഡർ അയക്കുന്നു
           if (receiver && receiver.phone) {
             const cleanPhone = receiver.phone.replace(/[^0-9]/g, '');
-            const msg = encodeURIComponent(`Assalamu Alaikum,\nReminder on Task: *${t.title}*\nTarget Date: ${t.target_date}\nStatus: ${t.status}\n\nഈ വർക്ക് പൂർത്തിയായിട്ടുണ്ടോ? ദയവായി അപ്‌ഡേറ്റ് അറിയിക്കുമല്ലോ.`);
-            waBtn = `<a href="https://wa.me/${cleanPhone}?text=${msg}" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1 font-semibold text-xs shadow-sm">💬 WhatsApp ${t.assigned_to}</a>`;
+            let msg = `Assalamu Alaikum,\nTo: *${t.assigned_to}*${receiverHead}\n\n`;
+            msg += `📌 *Task:* ${t.title}\n`;
+            if (t.details) msg += `📝 *Details / Ref:* ${t.details}\n`;
+            msg += `📅 *Target Date:* ${t.target_date}\n`;
+            msg += `📊 *Status:* ${t.status}\n\n`;
+            msg += `ഈ വർക്ക് സംബന്ധിച്ച നിലവിലെ വിവരം ദയവായി അപ്‌ഡേറ്റ് ചെയ്യുമല്ലോ.`;
+
+            waBtn = `<a href="https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1 font-semibold text-xs shadow-sm">💬 WhatsApp ${t.assigned_to}</a>`;
           } else {
             waBtn = `<button onclick="openModal('contactsModal')" class="px-2.5 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-300">⚠️ Add Phone (${t.assigned_to})</button>`;
           }
         } else {
-          // ടാസ്ക് കിട്ടിയ ആൾ സെൻഡർക്ക് റിപ്ലൈ നൽകുന്നു
           if (sender && sender.phone) {
             const cleanPhone = sender.phone.replace(/[^0-9]/g, '');
-            const msg = encodeURIComponent(`Assalamu Alaikum,\nReply on Task: *${t.title}*\nTarget Date: ${t.target_date}\n\nഈ വർക്ക് സംബന്ധിച്ച അപ്‌ഡേറ്റ് അറിയിക്കുന്നു.`);
-            waBtn = `<a href="https://wa.me/${cleanPhone}?text=${msg}" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1 font-semibold text-xs shadow-sm">💬 Reply to ${t.assigned_by}</a>`;
+            let msg = `Assalamu Alaikum,\nTo: *${t.assigned_by}*${senderHead}\n\n`;
+            msg += `Re: *${t.title}*\n`;
+            if (t.details) msg += `Details: ${t.details}\n`;
+            msg += `Target Date: ${t.target_date}\n\n`;
+            msg += `ഈ വർക്ക് പൂർത്തിയായിട്ടുണ്ട് / അപ്‌ഡേറ്റ് അറിയിക്കുന്നു. ദയവായി പരിശോധിക്കുക.`;
+
+            waBtn = `<a href="https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1 font-semibold text-xs shadow-sm">💬 Reply to ${t.assigned_by}</a>`;
           } else {
             waBtn = `<button onclick="openModal('contactsModal')" class="px-2.5 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-300">⚠️ Add Phone (${t.assigned_by})</button>`;
           }
@@ -332,16 +350,19 @@
         return `
           <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
             <div class="flex justify-between items-start mb-2">
-              <h4 class="font-semibold text-slate-800 text-base">${t.title}</h4>
+              <div>
+                <h4 class="font-bold text-slate-900 text-base">${t.title}</h4>
+                ${t.details ? `<p class="text-xs text-slate-600 mt-1 whitespace-pre-line">${t.details}</p>` : ''}
+              </div>
               <span class="text-xs px-2.5 py-1 rounded-full font-medium ${t.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
                 ${t.status}
               </span>
             </div>
 
-            <div class="text-xs text-slate-500 mb-3 flex flex-wrap gap-2 items-center">
+            <div class="text-xs text-slate-500 mb-3 flex flex-wrap gap-2 items-center mt-2">
               <span>📅 ${t.target_date}</span>
               <span>•</span>
-              <span class="bg-slate-100 px-2 py-0.5 rounded font-medium">To: ${t.assigned_to}</span>
+              <span class="bg-slate-100 px-2 py-0.5 rounded font-medium">To: ${t.assigned_to}${receiverHead}</span>
               <span class="bg-purple-50 text-purple-700 px-2 py-0.5 rounded font-medium">From: ${t.assigned_by}</span>
             </div>
 
@@ -354,7 +375,7 @@
                   <button onclick="openActionModal(${t.id}, 'postpone')" class="px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-medium">➡️ Postpone</button>
                   <button onclick="openActionModal(${t.id}, 'note')" class="px-3 py-1.5 bg-slate-600 text-white rounded-lg hover:bg-slate-700 font-medium">📝 Note</button>
                 ` : ''}
-                <button onclick="openEditModal(${t.id}, '${encodeURIComponent(t.title)}', '${t.target_date}', '${t.assigned_to}')" class="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium">✏️ Edit</button>
+                <button onclick="openEditModal(${t.id}, '${encodeURIComponent(t.title)}', '${encodeURIComponent(t.details || '')}', '${t.target_date}', '${t.assigned_to}')" class="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium">✏️ Edit</button>
               </div>
               <div class="mt-2 sm:mt-0">${waBtn}</div>
             </div>
@@ -370,11 +391,13 @@
       btn.disabled = true;
 
       const targetDept = document.getElementById("targetDept").value;
-      const desc = document.getElementById("taskDesc").value;
+      const title = document.getElementById("taskTitle").value;
+      const details = document.getElementById("taskDetails").value;
       const date = document.getElementById("targetDate").value;
 
       await db.from('tasks').insert([{
-        title: desc,
+        title: title,
+        details: details,
         target_date: date,
         assigned_to: targetDept,
         assigned_by: currentUser,
@@ -388,9 +411,10 @@
     }
 
     // EDIT TASK
-    function openEditModal(id, titleEncoded, date, assignedTo) {
+    function openEditModal(id, titleEncoded, detailsEncoded, date, assignedTo) {
       document.getElementById("editTaskId").value = id;
-      document.getElementById("editTaskDesc").value = decodeURIComponent(titleEncoded);
+      document.getElementById("editTaskTitle").value = decodeURIComponent(titleEncoded);
+      document.getElementById("editTaskDetails").value = decodeURIComponent(detailsEncoded);
       document.getElementById("editTargetDate").value = date;
       document.getElementById("editTargetDept").value = assignedTo;
       openModal('editTaskModal');
@@ -398,12 +422,14 @@
 
     async function saveTaskEdit() {
       const id = document.getElementById("editTaskId").value;
-      const title = document.getElementById("editTaskDesc").value;
+      const title = document.getElementById("editTaskTitle").value;
+      const details = document.getElementById("editTaskDetails").value;
       const date = document.getElementById("editTargetDate").value;
       const dept = document.getElementById("editTargetDept").value;
 
       await db.from('tasks').update({
         title: title,
+        details: details,
         target_date: date,
         assigned_to: dept
       }).eq('id', id);
@@ -421,7 +447,7 @@
       }
     }
 
-    // ACTION MODAL (Complete, Postpone, Note)
+    // ACTION MODAL
     function openActionModal(id, type) {
       document.getElementById("actionTaskId").value = id;
       document.getElementById("actionType").value = type;
