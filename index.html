@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Task Manager</title>
+  <!-- Tailwind CSS & Supabase JS SDK -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+  <!-- 1. LOGIN SCREEN -->
+  <div id="loginSection" class="flex min-h-screen items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
+      <h2 class="text-2xl font-bold text-center text-blue-600 mb-6">Office Task Manager</h2>
+      
+      <label class="block text-sm font-semibold mb-1">Department</label>
+      <select id="loginDeptSelect" class="w-full p-3 border rounded-xl mb-4 bg-slate-50">
+        <option value="" disabled selected>Select Department</option>
+      </select>
+
+      <label class="block text-sm font-semibold mb-1">Passcode</label>
+      <input type="password" id="loginPasscode" placeholder="Enter Passcode" class="w-full p-3 border rounded-xl mb-6 bg-slate-50">
+
+      <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition shadow-md">
+        Login
+      </button>
+      <p id="loginErr" class="text-red-500 text-sm mt-3 text-center hidden">Invalid credentials!</p>
+    </div>
+  </div>
+
+  <!-- 2. DASHBOARD SCREEN -->
+  <div id="dashboardSection" class="hidden max-w-4xl mx-auto p-4 sm:p-6">
+    <!-- Header -->
+    <header class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm mb-6 border">
+      <div>
+        <span class="text-xs font-semibold text-slate-400 uppercase">Logged in as</span>
+        <h1 id="userDisplay" class="text-xl font-bold text-blue-600"></h1>
+      </div>
+      <button onclick="handleLogout()" class="px-4 py-2 text-sm bg-red-50 text-red-600 font-semibold rounded-lg hover:bg-red-100 transition">
+        Logout
+      </button>
+    </header>
+
+    <!-- Admin Filter (Visible only for Admin) -->
+    <div id="adminFilterBox" class="hidden mb-4 bg-blue-50 p-3 rounded-xl border border-blue-200 flex items-center gap-3">
+      <label class="text-sm font-semibold text-blue-900">Filter Department:</label>
+      <select id="adminDeptFilter" onchange="loadTasks()" class="p-2 border rounded-lg bg-white text-sm">
+        <option value="All">All Departments</option>
+      </select>
+    </div>
+
+    <!-- Actions & Filter Tabs -->
+    <div class="flex flex-col sm:flex-row justify-between gap-3 mb-6">
+      <div class="flex gap-2 overflow-x-auto pb-1">
+        <button onclick="setFilter('pending')" id="tab-pending" class="px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 text-white shadow-sm">Upcoming</button>
+        <button onclick="setFilter('sent')" id="tab-sent" class="px-4 py-2 text-sm font-semibold rounded-xl bg-white text-slate-600 border">📤 Sent</button>
+        <button onclick="setFilter('completed')" id="tab-completed" class="px-4 py-2 text-sm font-semibold rounded-xl bg-white text-slate-600 border">✅ History</button>
+      </div>
+      <button onclick="openModal('addTaskModal')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-sm shadow-sm">
+        + Assign New Task
+      </button>
+    </div>
+
+    <!-- Task List Container -->
+    <div id="taskContainer" class="space-y-4">
+      <p class="text-center text-slate-400 py-10">Loading tasks...</p>
+    </div>
+  </div>
+
+  <!-- ADD TASK MODAL -->
+  <div id="addTaskModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
+      <h3 class="text-lg font-bold mb-4">Assign New Task</h3>
+      <form id="addTaskForm" onsubmit="handleAddTask(event)">
+        <label class="block text-sm font-medium mb-1">Assign To</label>
+        <select id="targetDept" required class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50"></select>
+
+        <label class="block text-sm font-medium mb-1">Task Details</label>
+        <textarea id="taskDesc" rows="3" required placeholder="Type task description..." class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50"></textarea>
+
+        <label class="block text-sm font-medium mb-1">Target Date</label>
+        <input type="date" id="targetDate" required class="w-full p-2.5 border rounded-xl mb-5 bg-slate-50">
+
+        <div class="flex justify-end gap-2">
+          <button type="button" onclick="closeModal('addTaskModal')" class="px-4 py-2 border rounded-xl text-sm">Cancel</button>
+          <button type="submit" id="btnSaveTask" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold">Assign</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ACTION MODAL (Complete / Postpone) -->
+  <div id="actionModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+      <h3 id="actionModalTitle" class="text-lg font-bold mb-3">Update Task</h3>
+      <input type="hidden" id="actionTaskId">
+      <input type="hidden" id="actionType">
+
+      <div id="postponeDateGroup" class="hidden mb-3">
+        <label class="block text-sm font-medium mb-1">New Target Date</label>
+        <input type="date" id="actionNewDate" class="w-full p-2.5 border rounded-xl bg-slate-50">
+      </div>
+
+      <label class="block text-sm font-medium mb-1" id="actionNoteLabel">Note / Remarks</label>
+      <textarea id="actionReason" rows="2" placeholder="Reason or status update..." class="w-full p-2.5 border rounded-xl mb-4 bg-slate-50"></textarea>
+
+      <div class="flex justify-end gap-2">
+        <button type="button" onclick="closeModal('actionModal')" class="px-4 py-2 border rounded-xl text-sm">Cancel</button>
+        <button type="button" onclick="submitTaskAction()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold">Update</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ----------------- CONFIGURATION -----------------
+    const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentUser = localStorage.getItem("taskUser") || "";
+    let currentFilter = "pending";
+    let departmentsList = [];
+
+    window.onload = async () => {
+      await loadDepartments();
+      if (currentUser) initDashboard();
+    };
+
+    async function loadDepartments() {
+      const { data, error } = await db.from('departments').select('name');
+      if (!error && data) {
+        departmentsList = data.map(d => d.name);
+        const loginSelect = document.getElementById("loginDeptSelect");
+        const targetSelect = document.getElementById("targetDept");
+        const filterSelect = document.getElementById("adminDeptFilter");
+
+        departmentsList.forEach(name => {
+          loginSelect.add(new Option(name, name));
+          if (name !== 'Admin') {
+            targetSelect.add(new Option(name, name));
+            filterSelect.add(new Option(name, name));
+          }
+        });
+      }
+    }
+
+    async function handleLogin() {
+      const dept = document.getElementById("loginDeptSelect").value;
+      const pass = document.getElementById("loginPasscode").value;
+      const err = document.getElementById("loginErr");
+
+      const { data, error } = await db.from('departments')
+        .select('*')
+        .eq('name', dept)
+        .eq('passcode', pass)
+        .single();
+
+      if (data) {
+        currentUser = data.name;
+        localStorage.setItem("taskUser", currentUser);
+        err.classList.add("hidden");
+        initDashboard();
+      } else {
+        err.classList.remove("hidden");
+      }
+    }
+
+    function initDashboard() {
+      document.getElementById("loginSection").classList.add("hidden");
+      document.getElementById("dashboardSection").classList.remove("hidden");
+      document.getElementById("userDisplay").innerText = currentUser;
+
+      if (currentUser === "Admin") {
+        document.getElementById("adminFilterBox").classList.remove("hidden");
+      }
+      loadTasks();
+    }
+
+    function handleLogout() {
+      localStorage.removeItem("taskUser");
+      location.reload();
+    }
+
+    function setFilter(type) {
+      currentFilter = type;
+      ['pending', 'sent', 'completed'].forEach(tab => {
+        const btn = document.getElementById(`tab-${tab}`);
+        if (tab === type) {
+          btn.className = "px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 text-white shadow-sm";
+        } else {
+          btn.className = "px-4 py-2 text-sm font-semibold rounded-xl bg-white text-slate-600 border";
+        }
+      });
+      loadTasks();
+    }
+
+    async function loadTasks() {
+      const container = document.getElementById("taskContainer");
+      container.innerHTML = `<p class="text-center text-slate-400 py-10">Loading...</p>`;
+
+      let query = db.from('tasks').select('*');
+
+      if (currentFilter === 'sent') {
+        query = query.eq('assigned_by', currentUser);
+      } else {
+        if (currentUser !== 'Admin') {
+          query = query.eq('assigned_to', currentUser);
+        } else {
+          const adminFilter = document.getElementById("adminDeptFilter").value;
+          if (adminFilter !== "All") query = query.eq('assigned_to', adminFilter);
+        }
+
+        if (currentFilter === 'completed') {
+          query = query.eq('status', 'Completed');
+        } else {
+          query = query.neq('status', 'Completed');
+        }
+      }
+
+      query = query.order('target_date', { ascending: true });
+      const { data: tasks, error } = await query;
+
+      if (error || !tasks || tasks.length === 0) {
+        container.innerHTML = `<p class="text-center text-slate-400 py-10">No tasks found.</p>`;
+        return;
+      }
+
+      container.innerHTML = tasks.map(t => `
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+          <div class="flex justify-between items-start mb-2">
+            <h4 class="font-semibold text-slate-800 text-base">${t.title}</h4>
+            <span class="text-xs px-2.5 py-1 rounded-full font-medium ${t.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+              ${t.status}
+            </span>
+          </div>
+
+          <div class="text-xs text-slate-500 mb-3 flex flex-wrap gap-2 items-center">
+            <span>📅 ${t.target_date}</span>
+            <span>•</span>
+            <span class="bg-slate-100 px-2 py-0.5 rounded">To: ${t.assigned_to}</span>
+            <span class="bg-purple-50 text-purple-700 px-2 py-0.5 rounded">From: ${t.assigned_by}</span>
+          </div>
+
+          ${t.remarks ? `<div class="bg-amber-50 text-amber-900 border border-amber-200 p-2.5 rounded-lg text-xs whitespace-pre-line mb-3">📝 ${t.remarks}</div>` : ''}
+
+          ${t.status !== 'Completed' ? `
+            <div class="flex gap-2 pt-2 border-t text-xs">
+              <button onclick="openActionModal(${t.id}, 'complete')" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">✅ Complete</button>
+              <button onclick="openActionModal(${t.id}, 'postpone')" class="px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600">➡️ Postpone</button>
+              <button onclick="openActionModal(${t.id}, 'note')" class="px-3 py-1.5 bg-slate-600 text-white rounded-lg hover:bg-slate-700">📝 Note</button>
+            </div>
+          ` : ''}
+        </div>
+      `).join('');
+    }
+
+    async function handleAddTask(e) {
+      e.preventDefault();
+      const btn = document.getElementById("btnSaveTask");
+      btn.disabled = true;
+      btn.innerText = "Assigning...";
+
+      const targetDept = document.getElementById("targetDept").value;
+      const desc = document.getElementById("taskDesc").value;
+      const date = document.getElementById("targetDate").value;
+
+      const { error } = await db.from('tasks').insert([{
+        title: desc,
+        target_date: date,
+        assigned_to: targetDept,
+        assigned_by: currentUser,
+        status: 'Pending'
+      }]);
+
+      btn.disabled = false;
+      btn.innerText = "Assign";
+
+      if (!error) {
+        document.getElementById("addTaskForm").reset();
+        closeModal('addTaskModal');
+        loadTasks();
+      } else {
+        alert("Failed to assign task: " + error.message);
+      }
+    }
+
+    function openActionModal(id, type) {
+      document.getElementById("actionTaskId").value = id;
+      document.getElementById("actionType").value = type;
+      document.getElementById("actionReason").value = "";
+
+      const dateGroup = document.getElementById("postponeDateGroup");
+      const title = document.getElementById("actionModalTitle");
+
+      if (type === 'postpone') {
+        title.innerText = "Postpone Task";
+        dateGroup.classList.remove("hidden");
+      } else {
+        dateGroup.classList.add("hidden");
+        title.innerText = type === 'complete' ? "Complete Task" : "Add Note";
+      }
+
+      openModal('actionModal');
+    }
+
+    async function submitTaskAction() {
+      const id = document.getElementById("actionTaskId").value;
+      const type = document.getElementById("actionType").value;
+      const reason = document.getElementById("actionReason").value;
+      const newDate = document.getElementById("actionNewDate").value;
+
+      const { data: task } = await db.from('tasks').select('remarks').eq('id', id).single();
+      let currentRemarks = task?.remarks || "";
+
+      let updates = {};
+
+      if (type === 'complete') {
+        updates.status = 'Completed';
+        if (reason) updates.remarks = currentRemarks ? `${currentRemarks}\n[Completed: ${reason}]` : `Completed: ${reason}`;
+      } else if (type === 'postpone') {
+        if (!newDate) { alert("Please pick a new date"); return; }
+        updates.target_date = newDate;
+        updates.remarks = currentRemarks ? `${currentRemarks}\n[Postponed to ${newDate}: ${reason}]` : `Postponed to ${newDate}: ${reason}`;
+      } else if (type === 'note') {
+        if (!reason) { alert("Please enter a note"); return; }
+        updates.remarks = currentRemarks ? `${currentRemarks}\n• ${reason}` : `• ${reason}`;
+      }
+
+      const { error } = await db.from('tasks').update(updates).eq('id', id);
+      if (!error) {
+        closeModal('actionModal');
+        loadTasks();
+      }
+    }
+
+    function openModal(id) { document.getElementById(id).classList.remove("hidden"); }
+    function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
+  </script>
+</body>
+</html>
