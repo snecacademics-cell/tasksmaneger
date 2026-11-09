@@ -2,158 +2,167 @@
 <html lang="ml">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Office Task Manager Pro</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    /* മൊബൈൽ ഫോൺ ടച്ച് എളുപ്പമാക്കാനും ടെക്സ്റ്റ് തെളിഞ്ഞു കാണാനും */
+    body { -webkit-tap-highlight-color: transparent; }
+  </style>
 </head>
-<body class="bg-slate-100 min-h-screen text-slate-800">
+<body class="bg-slate-100 min-h-screen text-slate-800 antialiased">
 
   <!-- 1. LOGIN SECTION -->
   <div id="loginSection" class="flex min-h-screen items-center justify-center p-4">
-    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
-      <h2 class="text-2xl font-bold text-center text-blue-600 mb-6">Task Manager</h2>
+    <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg w-full max-w-sm border border-slate-200">
+      <h2 class="text-xl font-bold text-center text-blue-600 mb-5 tracking-tight">Task Manager</h2>
       
-      <label class="block text-sm font-semibold mb-1">Department</label>
-      <select id="loginDeptSelect" class="w-full p-3 border rounded-xl mb-4 bg-slate-50">
+      <label class="block text-xs font-semibold text-slate-600 mb-1">Department</label>
+      <select id="loginDeptSelect" class="w-full p-2.5 border rounded-xl mb-3 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none">
         <option value="" disabled selected>Select Department</option>
       </select>
 
-      <label class="block text-sm font-semibold mb-1">Passcode</label>
-      <input type="password" id="loginPasscode" placeholder="Enter Passcode" class="w-full p-3 border rounded-xl mb-6 bg-slate-50">
+      <label class="block text-xs font-semibold text-slate-600 mb-1">Passcode</label>
+      <input type="password" id="loginPasscode" placeholder="Enter Passcode" class="w-full p-2.5 border rounded-xl mb-5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none">
 
-      <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition shadow-md">
+      <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-2.5 rounded-xl transition shadow text-sm">
         Login
       </button>
-      <p id="loginErr" class="text-red-500 text-sm mt-3 text-center hidden">Invalid credentials!</p>
+      <p id="loginErr" class="text-red-500 text-xs mt-3 text-center hidden">Invalid credentials!</p>
     </div>
   </div>
 
   <!-- 2. DASHBOARD SECTION -->
-  <div id="dashboardSection" class="hidden max-w-4xl mx-auto p-4 sm:p-6">
-    <header class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm mb-6 border">
-      <div>
-        <span class="text-xs font-semibold text-slate-400 uppercase">Logged in as</span>
-        <h1 id="userDisplay" class="text-xl font-bold text-blue-600"></h1>
+  <div id="dashboardSection" class="hidden max-w-2xl mx-auto p-3 sm:p-5">
+    
+    <!-- Compact Top Bar -->
+    <header class="flex justify-between items-center bg-white px-4 py-3 rounded-xl shadow-sm mb-3 border border-slate-200">
+      <div class="flex flex-col">
+        <span class="text-[10px] uppercase font-bold text-slate-400 leading-tight">Logged In</span>
+        <h1 id="userDisplay" class="text-base font-bold text-blue-700 leading-tight"></h1>
       </div>
-      <div class="flex gap-2">
-        <button onclick="openModal('contactsModal')" class="px-3 py-1.5 text-xs bg-slate-100 text-slate-700 font-semibold rounded-lg hover:bg-slate-200 border">
-          👥 Numbers / Heads
+      <div class="flex items-center gap-1.5">
+        <button onclick="openModal('contactsModal')" class="px-2.5 py-1.5 text-xs bg-slate-100 active:bg-slate-200 text-slate-700 font-medium rounded-lg border flex items-center gap-1">
+          👥 Numbers
         </button>
-        <button onclick="handleLogout()" class="px-3 py-1.5 text-xs bg-red-50 text-red-600 font-semibold rounded-lg hover:bg-red-100">
+        <button onclick="handleLogout()" class="px-2.5 py-1.5 text-xs bg-red-50 active:bg-red-100 text-red-600 font-medium rounded-lg">
           Logout
         </button>
       </div>
     </header>
 
     <!-- Admin Filter Box -->
-    <div id="adminFilterBox" class="hidden mb-4 bg-blue-50 p-3 rounded-xl border border-blue-200 flex items-center gap-3">
-      <label class="text-sm font-semibold text-blue-900">Filter Department:</label>
-      <select id="adminDeptFilter" onchange="loadTasks()" class="p-2 border rounded-lg bg-white text-sm">
+    <div id="adminFilterBox" class="hidden mb-3 bg-blue-50 px-3 py-2 rounded-xl border border-blue-200 flex items-center justify-between text-xs">
+      <span class="font-semibold text-blue-900">Filter:</span>
+      <select id="adminDeptFilter" onchange="loadTasks()" class="p-1.5 border rounded-lg bg-white text-xs w-48">
         <option value="All">All Departments</option>
       </select>
     </div>
 
-    <!-- Actions & Filter Tabs -->
-    <div class="flex flex-col sm:flex-row justify-between gap-3 mb-6">
-      <div class="flex gap-2 overflow-x-auto pb-1">
-        <button onclick="setFilter('pending')" id="tab-pending" class="px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 text-white shadow-sm">Upcoming</button>
-        <button onclick="setFilter('sent')" id="tab-sent" class="px-4 py-2 text-sm font-semibold rounded-xl bg-white text-slate-600 border">📤 Sent</button>
-        <button onclick="setFilter('completed')" id="tab-completed" class="px-4 py-2 text-sm font-semibold rounded-xl bg-white text-slate-600 border">✅ History</button>
+    <!-- Quick Action Bar -->
+    <div class="flex items-center gap-2 mb-3">
+      <!-- Tabs (Scrollable on small screens) -->
+      <div class="flex bg-slate-200 p-0.5 rounded-xl flex-1 overflow-x-auto text-xs">
+        <button onclick="setFilter('pending')" id="tab-pending" class="flex-1 py-1.5 px-3 rounded-lg font-semibold bg-white text-blue-700 shadow-sm whitespace-nowrap">Upcoming</button>
+        <button onclick="setFilter('sent')" id="tab-sent" class="flex-1 py-1.5 px-3 rounded-lg font-medium text-slate-600 whitespace-nowrap">📤 Sent</button>
+        <button onclick="setFilter('completed')" id="tab-completed" class="flex-1 py-1.5 px-3 rounded-lg font-medium text-slate-600 whitespace-nowrap">✅ Done</button>
       </div>
-      <button onclick="openModal('addTaskModal')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-sm shadow-sm">
-        + Assign New Task
+      
+      <!-- New Task Button -->
+      <button onclick="openModal('addTaskModal')" class="bg-emerald-600 active:bg-emerald-700 text-white font-semibold px-3 py-2 rounded-xl text-xs shadow-sm flex items-center gap-1 whitespace-nowrap">
+        + Assign
       </button>
     </div>
 
-    <!-- Task List -->
-    <div id="taskContainer" class="space-y-4">
-      <p class="text-center text-slate-400 py-10">Loading tasks...</p>
+    <!-- Tasks List Container -->
+    <div id="taskContainer" class="space-y-3 pb-8">
+      <p class="text-center text-slate-400 py-10 text-xs">Loading tasks...</p>
     </div>
   </div>
 
   <!-- ADD TASK MODAL -->
-  <div id="addTaskModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
-      <h3 class="text-lg font-bold mb-4">Assign New Task</h3>
+  <div id="addTaskModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+    <div class="bg-white rounded-t-2xl sm:rounded-2xl p-5 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
+      <h3 class="text-base font-bold mb-3 text-slate-800">Assign New Task</h3>
       <form id="addTaskForm" onsubmit="handleAddTask(event)">
-        <label class="block text-sm font-medium mb-1">Assign To (Department)</label>
-        <select id="targetDept" required class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50"></select>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Assign To</label>
+        <select id="targetDept" required class="w-full p-2 border rounded-xl mb-2.5 text-xs bg-slate-50"></select>
 
-        <label class="block text-sm font-medium mb-1">Task Title (Main Heading)</label>
-        <input type="text" id="taskTitle" required placeholder="e.g. Monthly Plan Preparation" class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50">
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Task Title (Main Heading)</label>
+        <input type="text" id="taskTitle" required placeholder="e.g. RISALA SUBMISSION" class="w-full p-2 border rounded-xl mb-2.5 text-xs bg-slate-50">
 
-        <label class="block text-sm font-medium mb-1">Details / Reference / Instructions</label>
-        <textarea id="taskDetails" rows="3" placeholder="e.g. Monthly plans for PG by Koya Faizy and Shabeer Faizy." class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50"></textarea>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Details / Reference</label>
+        <textarea id="taskDetails" rows="2" placeholder="e.g. Final submission date instructions..." class="w-full p-2 border rounded-xl mb-2.5 text-xs bg-slate-50"></textarea>
 
-        <label class="block text-sm font-medium mb-1">Target Date</label>
-        <input type="date" id="targetDate" required class="w-full p-2.5 border rounded-xl mb-5 bg-slate-50">
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Target Date</label>
+        <input type="date" id="targetDate" required class="w-full p-2 border rounded-xl mb-4 text-xs bg-slate-50">
 
         <div class="flex justify-end gap-2">
-          <button type="button" onclick="closeModal('addTaskModal')" class="px-4 py-2 border rounded-xl text-sm">Cancel</button>
-          <button type="submit" id="btnSaveTask" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold">Assign</button>
+          <button type="button" onclick="closeModal('addTaskModal')" class="px-3.5 py-1.5 border rounded-xl text-xs font-medium">Cancel</button>
+          <button type="submit" id="btnSaveTask" class="px-4 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold">Assign</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- EDIT TASK MODAL -->
-  <div id="editTaskModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
-      <h3 class="text-lg font-bold mb-4 text-purple-700">Edit Task</h3>
+  <div id="editTaskModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+    <div class="bg-white rounded-t-2xl sm:rounded-2xl p-5 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
+      <h3 class="text-base font-bold mb-3 text-purple-700">Edit Task</h3>
       <input type="hidden" id="editTaskId">
       
-      <label class="block text-sm font-medium mb-1">Assign To (Department)</label>
-      <select id="editTargetDept" class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50"></select>
+      <label class="block text-xs font-semibold text-slate-600 mb-1">Assign To</label>
+      <select id="editTargetDept" class="w-full p-2 border rounded-xl mb-2.5 text-xs bg-slate-50"></select>
 
-      <label class="block text-sm font-medium mb-1">Task Title</label>
-      <input type="text" id="editTaskTitle" class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50">
+      <label class="block text-xs font-semibold text-slate-600 mb-1">Task Title</label>
+      <input type="text" id="editTaskTitle" class="w-full p-2 border rounded-xl mb-2.5 text-xs bg-slate-50">
 
-      <label class="block text-sm font-medium mb-1">Details / Reference</label>
-      <textarea id="editTaskDetails" rows="3" class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50"></textarea>
+      <label class="block text-xs font-semibold text-slate-600 mb-1">Details / Reference</label>
+      <textarea id="editTaskDetails" rows="2" class="w-full p-2 border rounded-xl mb-2.5 text-xs bg-slate-50"></textarea>
 
-      <label class="block text-sm font-medium mb-1">Target Date</label>
-      <input type="date" id="editTargetDate" class="w-full p-2.5 border rounded-xl mb-5 bg-slate-50">
+      <label class="block text-xs font-semibold text-slate-600 mb-1">Target Date</label>
+      <input type="date" id="editTargetDate" class="w-full p-2 border rounded-xl mb-4 text-xs bg-slate-50">
 
       <div class="flex justify-between items-center">
-        <button type="button" onclick="deleteTask()" class="px-3 py-2 text-xs bg-red-100 text-red-700 rounded-lg font-semibold hover:bg-red-200">🗑️ Delete</button>
+        <button type="button" onclick="deleteTask()" class="px-2.5 py-1.5 text-xs bg-red-50 text-red-600 rounded-lg font-medium">🗑️ Delete</button>
         <div class="flex gap-2">
-          <button type="button" onclick="closeModal('editTaskModal')" class="px-4 py-2 border rounded-xl text-sm">Cancel</button>
-          <button type="button" onclick="saveTaskEdit()" class="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-semibold">Save Changes</button>
+          <button type="button" onclick="closeModal('editTaskModal')" class="px-3.5 py-1.5 border rounded-xl text-xs font-medium">Cancel</button>
+          <button type="button" onclick="saveTaskEdit()" class="px-4 py-1.5 bg-purple-600 text-white rounded-xl text-xs font-semibold">Save</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ACTION MODAL (Complete / Postpone / Note) -->
+  <!-- ACTION MODAL -->
   <div id="actionModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-      <h3 id="actionModalTitle" class="text-lg font-bold mb-3">Update Task</h3>
+    <div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-xl">
+      <h3 id="actionModalTitle" class="text-base font-bold mb-3">Update Task</h3>
       <input type="hidden" id="actionTaskId">
       <input type="hidden" id="actionType">
 
-      <div id="postponeDateGroup" class="hidden mb-3">
-        <label class="block text-sm font-medium mb-1">New Target Date</label>
-        <input type="date" id="actionNewDate" class="w-full p-2.5 border rounded-xl bg-slate-50">
+      <div id="postponeDateGroup" class="hidden mb-2.5">
+        <label class="block text-xs font-semibold text-slate-600 mb-1">New Target Date</label>
+        <input type="date" id="actionNewDate" class="w-full p-2 border rounded-xl bg-slate-50 text-xs">
       </div>
 
-      <label class="block text-sm font-medium mb-1">Note / Remarks</label>
-      <textarea id="actionReason" rows="2" placeholder="Enter reason or remark..." class="w-full p-2.5 border rounded-xl mb-4 bg-slate-50"></textarea>
+      <label class="block text-xs font-semibold text-slate-600 mb-1">Remarks / Note</label>
+      <textarea id="actionReason" rows="2" placeholder="Write remarks here..." class="w-full p-2 border rounded-xl mb-3 text-xs bg-slate-50"></textarea>
 
       <div class="flex justify-end gap-2">
-        <button type="button" onclick="closeModal('actionModal')" class="px-4 py-2 border rounded-xl text-sm">Cancel</button>
-        <button type="button" onclick="submitTaskAction()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold">Update</button>
+        <button type="button" onclick="closeModal('actionModal')" class="px-3 py-1.5 border rounded-xl text-xs">Cancel</button>
+        <button type="button" onclick="submitTaskAction()" class="px-3.5 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold">Update</button>
       </div>
     </div>
   </div>
 
   <!-- CONTACTS MODAL -->
-  <div id="contactsModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[85vh] flex flex-col">
-      <h3 class="text-lg font-bold mb-1">Department WhatsApp Numbers</h3>
-      <p class="text-xs text-slate-500 mb-3">ഫോൺ നമ്പർ ഇവിടെ നൽകി സേവ് ചെയ്യുക (ഉദാ: 919876543210)</p>
-      <div id="contactsList" class="space-y-3 overflow-y-auto flex-1 pr-1"></div>
-      <button onclick="closeModal('contactsModal')" class="mt-4 w-full py-2 bg-slate-800 text-white rounded-xl text-sm font-semibold">Close</button>
+  <div id="contactsModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+    <div class="bg-white rounded-t-2xl sm:rounded-2xl p-5 w-full max-w-md shadow-xl max-h-[85vh] flex flex-col">
+      <h3 class="text-base font-bold mb-1">WhatsApp Numbers</h3>
+      <p class="text-[11px] text-slate-500 mb-3">ഫോൺ നമ്പർ ഇവിടെ നേരിട്ട് നൽകി സേവ് ചെയ്യാം (91XXXXXXXXXX)</p>
+      <div id="contactsList" class="space-y-2 overflow-y-auto flex-1 pr-1"></div>
+      <button onclick="closeModal('contactsModal')" class="mt-3 w-full py-2 bg-slate-800 text-white rounded-xl text-xs font-semibold">Close</button>
     </div>
   </div>
 
@@ -211,17 +220,16 @@
     function renderContacts() {
       const list = document.getElementById("contactsList");
       list.innerHTML = departmentsData.map(function(d) {
-        const chatLink = d.phone ? '<a href="https://wa.me/' + d.phone.replace(/[^0-9]/g,'') + '" target="_blank" class="px-2 py-0.5 bg-green-500 text-white rounded font-bold">Chat</a>' : '';
-        return '<div class="p-3 bg-slate-50 rounded-xl border flex flex-col gap-2 text-xs">' +
+        return '<div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col gap-1.5 text-xs">' +
           '<div class="flex justify-between items-center">' +
-            '<span class="font-bold text-slate-800 text-sm">' + d.name + '</span>' +
-            chatLink +
+            '<span class="font-bold text-slate-800">' + d.name + '</span>' +
+            (d.phone ? '<a href="https://wa.me/' + d.phone.replace(/[^0-9]/g,'') + '" target="_blank" class="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-bold">Chat</a>' : '') +
           '</div>' +
-          '<div class="grid grid-cols-2 gap-2">' +
-            '<input type="text" id="head_' + d.id + '" placeholder="Head Name / Role" value="' + (d.head_name || '') + '" class="p-1.5 border rounded bg-white">' +
-            '<input type="text" id="phone_' + d.id + '" placeholder="91XXXXXXXXXX" value="' + (d.phone || '') + '" class="p-1.5 border rounded bg-white">' +
+          '<div class="grid grid-cols-2 gap-1.5">' +
+            '<input type="text" id="head_' + d.id + '" placeholder="Head Name" value="' + (d.head_name || '') + '" class="p-1 border rounded bg-white text-xs">' +
+            '<input type="text" id="phone_' + d.id + '" placeholder="91XXXXXXXXXX" value="' + (d.phone || '') + '" class="p-1 border rounded bg-white text-xs">' +
           '</div>' +
-          '<button onclick="saveContact(' + d.id + ')" class="self-end px-3 py-1 bg-blue-600 text-white rounded font-medium">Save Number</button>' +
+          '<button onclick="saveContact(' + d.id + ')" class="self-end px-2.5 py-1 bg-blue-600 text-white rounded text-[11px] font-medium">Save</button>' +
         '</div>';
       }).join('');
     }
@@ -281,16 +289,18 @@
       currentFilter = type;
       ['pending', 'sent', 'completed'].forEach(function(tab) {
         const btn = document.getElementById('tab-' + tab);
-        btn.className = (tab === type)
-          ? "px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 text-white shadow-sm"
-          : "px-4 py-2 text-sm font-semibold rounded-xl bg-white text-slate-600 border";
+        if (tab === type) {
+          btn.className = "flex-1 py-1.5 px-3 rounded-lg font-semibold bg-white text-blue-700 shadow-sm whitespace-nowrap";
+        } else {
+          btn.className = "flex-1 py-1.5 px-3 rounded-lg font-medium text-slate-600 whitespace-nowrap";
+        }
       });
       loadTasks();
     }
 
     async function loadTasks() {
       const container = document.getElementById("taskContainer");
-      container.innerHTML = '<p class="text-center text-slate-400 py-10">Loading...</p>';
+      container.innerHTML = '<p class="text-center text-slate-400 py-8 text-xs">Loading...</p>';
 
       let query = db.from('tasks').select('*');
 
@@ -317,7 +327,7 @@
       const { data: tasks } = await query;
 
       if (!tasks || tasks.length === 0) {
-        container.innerHTML = '<p class="text-center text-slate-400 py-10">No tasks found.</p>';
+        container.innerHTML = '<p class="text-center text-slate-400 py-8 text-xs">No tasks found.</p>';
         return;
       }
 
@@ -347,9 +357,9 @@
             ].filter(function(line) { return line !== ""; });
 
             const finalMsg = encodeURIComponent(msgLines.join("\n"));
-            waBtn = '<a href="https://api.whatsapp.com/send?phone=' + cleanPhone + '&text=' + finalMsg + '" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1 font-semibold text-xs shadow-sm">💬 WhatsApp ' + t.assigned_to + '</a>';
+            waBtn = '<a href="https://api.whatsapp.com/send?phone=' + cleanPhone + '&text=' + finalMsg + '" target="_blank" class="w-full py-2 bg-emerald-600 active:bg-emerald-700 text-white rounded-lg flex items-center justify-center gap-1.5 font-semibold text-xs shadow-sm">💬 WhatsApp ' + t.assigned_to + '</a>';
           } else {
-            waBtn = '<button onclick="openModal(\'contactsModal\')" class="px-2.5 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-300">⚠️ Add Phone (' + t.assigned_to + ')</button>';
+            waBtn = '<button onclick="openModal(\'contactsModal\')" class="w-full py-1.5 bg-slate-200 active:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold">⚠️ Add Phone (' + t.assigned_to + ')</button>';
           }
         } else {
           if (sender && sender.phone) {
@@ -366,47 +376,51 @@
             ].filter(function(line) { return line !== ""; });
 
             const finalMsg = encodeURIComponent(msgLines.join("\n"));
-            waBtn = '<a href="https://api.whatsapp.com/send?phone=' + cleanPhone + '&text=' + finalMsg + '" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1 font-semibold text-xs shadow-sm">💬 Reply to ' + t.assigned_by + '</a>';
+            waBtn = '<a href="https://api.whatsapp.com/send?phone=' + cleanPhone + '&text=' + finalMsg + '" target="_blank" class="w-full py-2 bg-emerald-600 active:bg-emerald-700 text-white rounded-lg flex items-center justify-center gap-1.5 font-semibold text-xs shadow-sm">💬 Reply to ' + t.assigned_by + '</a>';
           } else {
-            waBtn = '<button onclick="openModal(\'contactsModal\')" class="px-2.5 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-300">⚠️ Add Phone (' + t.assigned_by + ')</button>';
+            waBtn = '<button onclick="openModal(\'contactsModal\')" class="w-full py-1.5 bg-slate-200 active:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold">⚠️ Add Phone (' + t.assigned_by + ')</button>';
           }
         }
 
-        const detailsHtml = t.details ? '<p class="text-xs text-slate-600 mt-1 whitespace-pre-line">' + t.details + '</p>' : '';
-        const remarksHtml = t.remarks ? '<div class="bg-amber-50 text-amber-900 border border-amber-200 p-2.5 rounded-lg text-xs whitespace-pre-line mb-3">📝 ' + t.remarks + '</div>' : '';
-        const statusBadgeClass = (t.status === 'Completed') ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700';
+        const detailsHtml = t.details ? '<p class="text-xs text-slate-600 mt-1 whitespace-pre-line leading-relaxed">' + t.details + '</p>' : '';
+        const remarksHtml = t.remarks ? '<div class="bg-amber-50 text-amber-900 border border-amber-200 p-2 rounded-lg text-[11px] whitespace-pre-line my-2">📝 ' + t.remarks + '</div>' : '';
+        const statusBadge = (t.status === 'Completed') 
+          ? '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Completed</span>'
+          : '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Pending</span>';
 
-        const actionButtons = (t.status !== 'Completed') ? 
-          '<button onclick="openActionModal(' + t.id + ', \'complete\')" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium">✅ Complete</button>' +
-          '<button onclick="openActionModal(' + t.id + ', \'postpone\')" class="px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-medium">➡️ Postpone</button>' +
-          '<button onclick="openActionModal(' + t.id + ', \'note\')" class="px-3 py-1.5 bg-slate-600 text-white rounded-lg hover:bg-slate-700 font-medium">📝 Note</button>' : '';
+        // കോംപാക്റ്റ് 4 ബട്ടണുകൾ ഒരൊറ്റ വരിയിൽ ഗ്രിഡ് ആയി
+        const actionGrid = (t.status !== 'Completed') ? 
+          '<div class="grid grid-cols-4 gap-1.5 mb-2">' +
+            '<button onclick="openActionModal(' + t.id + ', \'complete\')" class="py-1.5 bg-emerald-600 active:bg-emerald-700 text-white rounded-lg font-medium text-center text-[11px]">Done</button>' +
+            '<button onclick="openActionModal(' + t.id + ', \'postpone\')" class="py-1.5 bg-amber-500 active:bg-amber-600 text-white rounded-lg font-medium text-center text-[11px]">Postpone</button>' +
+            '<button onclick="openActionModal(' + t.id + ', \'note\')" class="py-1.5 bg-slate-600 active:bg-slate-700 text-white rounded-lg font-medium text-center text-[11px]">Note</button>' +
+            '<button onclick="openEditModal(' + t.id + ', \'' + encodeURIComponent(t.title) + '\', \'' + encodeURIComponent(t.details || '') + '\', \'' + t.target_date + '\', \'' + t.assigned_to + '\')" class="py-1.5 bg-purple-600 active:bg-purple-700 text-white rounded-lg font-medium text-center text-[11px]">Edit</button>' +
+          '</div>' : 
+          '<div class="flex justify-end mb-2">' +
+            '<button onclick="openEditModal(' + t.id + ', \'' + encodeURIComponent(t.title) + '\', \'' + encodeURIComponent(t.details || '') + '\', \'' + t.target_date + '\', \'' + t.assigned_to + '\')" class="px-3 py-1 bg-purple-600 text-white rounded-lg font-medium text-xs">Edit</button>' +
+          '</div>';
 
-        return '<div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">' +
-          '<div class="flex justify-between items-start mb-2">' +
-            '<div>' +
-              '<h4 class="font-bold text-slate-900 text-base">' + t.title + '</h4>' +
-              detailsHtml +
-            '</div>' +
-            '<span class="text-xs px-2.5 py-1 rounded-full font-medium ' + statusBadgeClass + '">' +
-              t.status +
-            '</span>' +
+        return '<div class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200">' +
+          '<div class="flex justify-between items-start gap-2 mb-1">' +
+            '<h4 class="font-bold text-slate-900 text-sm leading-snug flex-1">' + t.title + '</h4>' +
+            statusBadge +
           '</div>' +
 
-          '<div class="text-xs text-slate-500 mb-3 flex flex-wrap gap-2 items-center mt-2">' +
-            '<span>📅 ' + displayDate + '</span>' +
+          detailsHtml +
+
+          '<div class="text-[11px] text-slate-500 my-2 flex flex-wrap gap-x-2 gap-y-1 items-center bg-slate-50 p-1.5 rounded-lg border border-slate-100">' +
+            '<span>📅 <b class="text-slate-700">' + displayDate + '</b></span>' +
             '<span>•</span>' +
-            '<span class="bg-slate-100 px-2 py-0.5 rounded font-medium">To: ' + t.assigned_to + receiverHead + '</span>' +
-            '<span class="bg-purple-50 text-purple-700 px-2 py-0.5 rounded font-medium">From: ' + t.assigned_by + '</span>' +
+            '<span>To: <b class="text-slate-700">' + t.assigned_to + receiverHead + '</b></span>' +
+            '<span>•</span>' +
+            '<span class="text-purple-700 font-medium">From: ' + t.assigned_by + '</span>' +
           '</div>' +
 
           remarksHtml +
-
-          '<div class="flex flex-wrap gap-2 pt-3 border-t text-xs items-center justify-between">' +
-            '<div class="flex flex-wrap gap-1.5">' +
-              actionButtons +
-              '<button onclick="openEditModal(' + t.id + ', \'' + encodeURIComponent(t.title) + '\', \'' + encodeURIComponent(t.details || '') + '\', \'' + t.target_date + '\', \'' + t.assigned_to + '\')" class="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium">✏️ Edit</button>' +
-            '</div>' +
-            '<div class="mt-2 sm:mt-0">' + waBtn + '</div>' +
+          
+          '<div class="pt-2 border-t border-slate-100">' +
+            actionGrid +
+            waBtn +
           '</div>' +
         '</div>';
       }).join('');
