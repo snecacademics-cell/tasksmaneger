@@ -3,17 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Task Manager</title>
-  <!-- Tailwind CSS & Supabase JS SDK -->
+  <title>Office Task Manager Pro</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800">
 
-  <!-- 1. LOGIN SCREEN -->
+  <!-- LOGIN SECTION -->
   <div id="loginSection" class="flex min-h-screen items-center justify-center p-4">
     <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
-      <h2 class="text-2xl font-bold text-center text-blue-600 mb-6">Office Task Manager</h2>
+      <h2 class="text-2xl font-bold text-center text-blue-600 mb-6">Task Manager</h2>
       
       <label class="block text-sm font-semibold mb-1">Department</label>
       <select id="loginDeptSelect" class="w-full p-3 border rounded-xl mb-4 bg-slate-50">
@@ -30,20 +29,24 @@
     </div>
   </div>
 
-  <!-- 2. DASHBOARD SCREEN -->
+  <!-- DASHBOARD SECTION -->
   <div id="dashboardSection" class="hidden max-w-4xl mx-auto p-4 sm:p-6">
-    <!-- Header -->
     <header class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm mb-6 border">
       <div>
         <span class="text-xs font-semibold text-slate-400 uppercase">Logged in as</span>
         <h1 id="userDisplay" class="text-xl font-bold text-blue-600"></h1>
       </div>
-      <button onclick="handleLogout()" class="px-4 py-2 text-sm bg-red-50 text-red-600 font-semibold rounded-lg hover:bg-red-100 transition">
-        Logout
-      </button>
+      <div class="flex gap-2">
+        <button onclick="openModal('contactsModal')" class="px-3 py-1.5 text-xs bg-slate-100 text-slate-700 font-semibold rounded-lg hover:bg-slate-200 border">
+          👥 Phone Book
+        </button>
+        <button onclick="handleLogout()" class="px-3 py-1.5 text-xs bg-red-50 text-red-600 font-semibold rounded-lg hover:bg-red-100">
+          Logout
+        </button>
+      </div>
     </header>
 
-    <!-- Admin Filter (Visible only for Admin) -->
+    <!-- Admin Filter Box -->
     <div id="adminFilterBox" class="hidden mb-4 bg-blue-50 p-3 rounded-xl border border-blue-200 flex items-center gap-3">
       <label class="text-sm font-semibold text-blue-900">Filter Department:</label>
       <select id="adminDeptFilter" onchange="loadTasks()" class="p-2 border rounded-lg bg-white text-sm">
@@ -63,7 +66,7 @@
       </button>
     </div>
 
-    <!-- Task List Container -->
+    <!-- Task List -->
     <div id="taskContainer" class="space-y-4">
       <p class="text-center text-slate-400 py-10">Loading tasks...</p>
     </div>
@@ -74,7 +77,7 @@
     <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
       <h3 class="text-lg font-bold mb-4">Assign New Task</h3>
       <form id="addTaskForm" onsubmit="handleAddTask(event)">
-        <label class="block text-sm font-medium mb-1">Assign To</label>
+        <label class="block text-sm font-medium mb-1">Assign To (Department)</label>
         <select id="targetDept" required class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50"></select>
 
         <label class="block text-sm font-medium mb-1">Task Details</label>
@@ -85,13 +88,38 @@
 
         <div class="flex justify-end gap-2">
           <button type="button" onclick="closeModal('addTaskModal')" class="px-4 py-2 border rounded-xl text-sm">Cancel</button>
-          <button type="submit" id="btnSaveTask" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold">Assign</button>
+          <button type="submit" id="btnSaveTask" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold">Assign</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- ACTION MODAL (Complete / Postpone) -->
+  <!-- EDIT TASK MODAL -->
+  <div id="editTaskModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
+      <h3 class="text-lg font-bold mb-4 text-purple-700">Edit Task</h3>
+      <input type="hidden" id="editTaskId">
+      
+      <label class="block text-sm font-medium mb-1">Assign To (Change Dept)</label>
+      <select id="editTargetDept" class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50"></select>
+
+      <label class="block text-sm font-medium mb-1">Task Details</label>
+      <textarea id="editTaskDesc" rows="3" class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50"></textarea>
+
+      <label class="block text-sm font-medium mb-1">Target Date</label>
+      <input type="date" id="editTargetDate" class="w-full p-2.5 border rounded-xl mb-5 bg-slate-50">
+
+      <div class="flex justify-between items-center">
+        <button type="button" onclick="deleteTask()" class="px-3 py-2 text-xs bg-red-100 text-red-700 rounded-lg font-semibold hover:bg-red-200">🗑️ Delete</button>
+        <div class="flex gap-2">
+          <button type="button" onclick="closeModal('editTaskModal')" class="px-4 py-2 border rounded-xl text-sm">Cancel</button>
+          <button type="button" onclick="saveTaskEdit()" class="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-semibold">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTION MODAL (Complete / Postpone / Note) -->
   <div id="actionModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
     <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
       <h3 id="actionModalTitle" class="text-lg font-bold mb-3">Update Task</h3>
@@ -103,8 +131,8 @@
         <input type="date" id="actionNewDate" class="w-full p-2.5 border rounded-xl bg-slate-50">
       </div>
 
-      <label class="block text-sm font-medium mb-1" id="actionNoteLabel">Note / Remarks</label>
-      <textarea id="actionReason" rows="2" placeholder="Reason or status update..." class="w-full p-2.5 border rounded-xl mb-4 bg-slate-50"></textarea>
+      <label class="block text-sm font-medium mb-1">Note / Remarks</label>
+      <textarea id="actionReason" rows="2" placeholder="Enter reason or remark..." class="w-full p-2.5 border rounded-xl mb-4 bg-slate-50"></textarea>
 
       <div class="flex justify-end gap-2">
         <button type="button" onclick="closeModal('actionModal')" class="px-4 py-2 border rounded-xl text-sm">Cancel</button>
@@ -113,16 +141,23 @@
     </div>
   </div>
 
+  <!-- CONTACTS / HEADS MODAL -->
+  <div id="contactsModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[80vh] flex flex-col">
+      <h3 class="text-lg font-bold mb-3">Department Head Contacts</h3>
+      <div id="contactsList" class="space-y-3 overflow-y-auto flex-1 pr-1"></div>
+      <button onclick="closeModal('contactsModal')" class="mt-4 w-full py-2 border rounded-xl text-sm font-semibold">Close</button>
+    </div>
+  </div>
+
   <script>
-    // ----------------- CONFIGURATION -----------------
-   // ----------------- CONFIGURATION -----------------
-const SUPABASE_URL = "https://stniqwvejaxribjfxolk.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_1KnlOZFIv_gNWeuIZRPvCw_HAEUtird";
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const SUPABASE_URL = "https://stniqwvejaxribjfxolk.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_1KnlOZFIv_gNWeuIZRPvCw_HAEUtird";
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let currentUser = localStorage.getItem("taskUser") || "";
     let currentFilter = "pending";
-    let departmentsList = [];
+    let departmentsData = [];
 
     window.onload = async () => {
       await loadDepartments();
@@ -130,21 +165,38 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     };
 
     async function loadDepartments() {
-      const { data, error } = await db.from('departments').select('name');
-      if (!error && data) {
-        departmentsList = data.map(d => d.name);
+      const { data } = await db.from('departments').select('*');
+      if (data) {
+        departmentsData = data;
         const loginSelect = document.getElementById("loginDeptSelect");
         const targetSelect = document.getElementById("targetDept");
+        const editSelect = document.getElementById("editTargetDept");
         const filterSelect = document.getElementById("adminDeptFilter");
 
-        departmentsList.forEach(name => {
-          loginSelect.add(new Option(name, name));
-          if (name !== 'Admin') {
-            targetSelect.add(new Option(name, name));
-            filterSelect.add(new Option(name, name));
+        departmentsData.forEach(d => {
+          loginSelect.add(new Option(d.name, d.name));
+          if (d.name !== 'Admin') {
+            targetSelect.add(new Option(d.name, d.name));
+            editSelect.add(new Option(d.name, d.name));
+            filterSelect.add(new Option(d.name, d.name));
           }
         });
+        renderContacts();
       }
+    }
+
+    function renderContacts() {
+      const list = document.getElementById("contactsList");
+      list.innerHTML = departmentsData.map(d => `
+        <div class="p-3 bg-slate-50 rounded-xl border flex justify-between items-center text-xs">
+          <div>
+            <div class="font-bold text-slate-800">${d.name}</div>
+            <div class="text-slate-500">${d.head_name || 'No Head Named'}</div>
+            <div class="text-blue-600 font-mono">${d.phone || 'No Phone'}</div>
+          </div>
+          ${d.phone ? `<a href="https://wa.me/${d.phone.replace(/[^0-9]/g,'')}" target="_blank" class="px-2.5 py-1 bg-green-500 text-white rounded-lg font-bold">WhatsApp</a>` : ''}
+        </div>
+      `).join('');
     }
 
     async function handleLogin() {
@@ -152,11 +204,7 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       const pass = document.getElementById("loginPasscode").value;
       const err = document.getElementById("loginErr");
 
-      const { data, error } = await db.from('departments')
-        .select('*')
-        .eq('name', dept)
-        .eq('passcode', pass)
-        .single();
+      const { data } = await db.from('departments').select('*').eq('name', dept).eq('passcode', pass).single();
 
       if (data) {
         currentUser = data.name;
@@ -188,11 +236,9 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       currentFilter = type;
       ['pending', 'sent', 'completed'].forEach(tab => {
         const btn = document.getElementById(`tab-${tab}`);
-        if (tab === type) {
-          btn.className = "px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 text-white shadow-sm";
-        } else {
-          btn.className = "px-4 py-2 text-sm font-semibold rounded-xl bg-white text-slate-600 border";
-        }
+        btn.className = (tab === type)
+          ? "px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 text-white shadow-sm"
+          : "px-4 py-2 text-sm font-semibold rounded-xl bg-white text-slate-600 border";
       });
       loadTasks();
     }
@@ -221,53 +267,72 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       }
 
       query = query.order('target_date', { ascending: true });
-      const { data: tasks, error } = await query;
+      const { data: tasks } = await query;
 
-      if (error || !tasks || tasks.length === 0) {
+      if (!tasks || tasks.length === 0) {
         container.innerHTML = `<p class="text-center text-slate-400 py-10">No tasks found.</p>`;
         return;
       }
 
-      container.innerHTML = tasks.map(t => `
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-          <div class="flex justify-between items-start mb-2">
-            <h4 class="font-semibold text-slate-800 text-base">${t.title}</h4>
-            <span class="text-xs px-2.5 py-1 rounded-full font-medium ${t.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
-              ${t.status}
-            </span>
-          </div>
+      container.innerHTML = tasks.map(t => {
+        // WhatsApp ലിങ്ക് തയ്യാറാക്കൽ
+        const receiverDept = departmentsData.find(d => d.name === t.assigned_to);
+        const senderDept = departmentsData.find(d => d.name === t.assigned_by);
 
-          <div class="text-xs text-slate-500 mb-3 flex flex-wrap gap-2 items-center">
-            <span>📅 ${t.target_date}</span>
-            <span>•</span>
-            <span class="bg-slate-100 px-2 py-0.5 rounded">To: ${t.assigned_to}</span>
-            <span class="bg-purple-50 text-purple-700 px-2 py-0.5 rounded">From: ${t.assigned_by}</span>
-          </div>
+        let waBtn = '';
+        if (currentFilter === 'sent' && receiverDept?.phone) {
+          const msg = encodeURIComponent(`Hello, task update request:\n📌 *${t.title}*\nTarget Date: ${t.target_date}\nStatus: ${t.status}\nIs this work completed?`);
+          waBtn = `<a href="https://wa.me/${receiverDept.phone.replace(/[^0-9]/g,'')}?text=${msg}" target="_blank" class="px-2.5 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg flex items-center gap-1 font-semibold text-xs">💬 Ask Update</a>`;
+        } else if (currentFilter === 'completed' && senderDept?.phone) {
+          const msg = encodeURIComponent(`Hello, task completed notification:\n✅ *${t.title}*\nCompleted successfully. Please check.`);
+          waBtn = `<a href="https://wa.me/${senderDept.phone.replace(/[^0-9]/g,'')}?text=${msg}" target="_blank" class="px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-1 font-semibold text-xs">💬 Inform Sender</a>`;
+        }
 
-          ${t.remarks ? `<div class="bg-amber-50 text-amber-900 border border-amber-200 p-2.5 rounded-lg text-xs whitespace-pre-line mb-3">📝 ${t.remarks}</div>` : ''}
-
-          ${t.status !== 'Completed' ? `
-            <div class="flex gap-2 pt-2 border-t text-xs">
-              <button onclick="openActionModal(${t.id}, 'complete')" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">✅ Complete</button>
-              <button onclick="openActionModal(${t.id}, 'postpone')" class="px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600">➡️ Postpone</button>
-              <button onclick="openActionModal(${t.id}, 'note')" class="px-3 py-1.5 bg-slate-600 text-white rounded-lg hover:bg-slate-700">📝 Note</button>
+        return `
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex justify-between items-start mb-2">
+              <h4 class="font-semibold text-slate-800 text-base">${t.title}</h4>
+              <span class="text-xs px-2.5 py-1 rounded-full font-medium ${t.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                ${t.status}
+              </span>
             </div>
-          ` : ''}
-        </div>
-      `).join('');
+
+            <div class="text-xs text-slate-500 mb-3 flex flex-wrap gap-2 items-center">
+              <span>📅 ${t.target_date}</span>
+              <span>•</span>
+              <span class="bg-slate-100 px-2 py-0.5 rounded font-medium">To: ${t.assigned_to}</span>
+              <span class="bg-purple-50 text-purple-700 px-2 py-0.5 rounded font-medium">From: ${t.assigned_by}</span>
+            </div>
+
+            ${t.remarks ? `<div class="bg-amber-50 text-amber-900 border border-amber-200 p-2.5 rounded-lg text-xs whitespace-pre-line mb-3">📝 ${t.remarks}</div>` : ''}
+
+            <div class="flex flex-wrap gap-2 pt-2 border-t text-xs items-center justify-between">
+              <div class="flex gap-2">
+                ${t.status !== 'Completed' ? `
+                  <button onclick="openActionModal(${t.id}, 'complete')" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium">✅ Complete</button>
+                  <button onclick="openActionModal(${t.id}, 'postpone')" class="px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-medium">➡️ Postpone</button>
+                  <button onclick="openActionModal(${t.id}, 'note')" class="px-3 py-1.5 bg-slate-600 text-white rounded-lg hover:bg-slate-700 font-medium">📝 Note</button>
+                ` : ''}
+                <button onclick="openEditModal(${t.id}, '${encodeURIComponent(t.title)}', '${t.target_date}', '${t.assigned_to}')" class="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium">✏️ Edit</button>
+              </div>
+              <div>${waBtn}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
+    // ADD TASK
     async function handleAddTask(e) {
       e.preventDefault();
       const btn = document.getElementById("btnSaveTask");
       btn.disabled = true;
-      btn.innerText = "Assigning...";
 
       const targetDept = document.getElementById("targetDept").value;
       const desc = document.getElementById("taskDesc").value;
       const date = document.getElementById("targetDate").value;
 
-      const { error } = await db.from('tasks').insert([{
+      await db.from('tasks').insert([{
         title: desc,
         target_date: date,
         assigned_to: targetDept,
@@ -276,17 +341,46 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       }]);
 
       btn.disabled = false;
-      btn.innerText = "Assign";
+      document.getElementById("addTaskForm").reset();
+      closeModal('addTaskModal');
+      loadTasks();
+    }
 
-      if (!error) {
-        document.getElementById("addTaskForm").reset();
-        closeModal('addTaskModal');
+    // EDIT TASK
+    function openEditModal(id, titleEncoded, date, assignedTo) {
+      document.getElementById("editTaskId").value = id;
+      document.getElementById("editTaskDesc").value = decodeURIComponent(titleEncoded);
+      document.getElementById("editTargetDate").value = date;
+      document.getElementById("editTargetDept").value = assignedTo;
+      openModal('editTaskModal');
+    }
+
+    async function saveTaskEdit() {
+      const id = document.getElementById("editTaskId").value;
+      const title = document.getElementById("editTaskDesc").value;
+      const date = document.getElementById("editTargetDate").value;
+      const dept = document.getElementById("editTargetDept").value;
+
+      await db.from('tasks').update({
+        title: title,
+        target_date: date,
+        assigned_to: dept
+      }).eq('id', id);
+
+      closeModal('editTaskModal');
+      loadTasks();
+    }
+
+    async function deleteTask() {
+      if (confirm("Are you sure you want to delete this task?")) {
+        const id = document.getElementById("editTaskId").value;
+        await db.from('tasks').delete().eq('id', id);
+        closeModal('editTaskModal');
         loadTasks();
-      } else {
-        alert("Failed to assign task: " + error.message);
       }
     }
 
+    // ACTION MODAL (Complete, Postpone, Note)
     function openActionModal(id, type) {
       document.getElementById("actionTaskId").value = id;
       document.getElementById("actionType").value = type;
@@ -314,7 +408,6 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
       const { data: task } = await db.from('tasks').select('remarks').eq('id', id).single();
       let currentRemarks = task?.remarks || "";
-
       let updates = {};
 
       if (type === 'complete') {
@@ -329,11 +422,9 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         updates.remarks = currentRemarks ? `${currentRemarks}\n• ${reason}` : `• ${reason}`;
       }
 
-      const { error } = await db.from('tasks').update(updates).eq('id', id);
-      if (!error) {
-        closeModal('actionModal');
-        loadTasks();
-      }
+      await db.from('tasks').update(updates).eq('id', id);
+      closeModal('actionModal');
+      loadTasks();
     }
 
     function openModal(id) { document.getElementById(id).classList.remove("hidden"); }
