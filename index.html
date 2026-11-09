@@ -275,7 +275,15 @@
       });
       loadTasks();
     }
-
+function formatDateDMY(dateStr) {
+  if (!dateStr) return "";
+  const parts = dateStr.split("-");
+  if (parts.length === 3) {
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return dateStr;
+}
+    
     async function loadTasks() {
       const container = document.getElementById("taskContainer");
       container.innerHTML = `<p class="text-center text-slate-400 py-10">Loading...</p>`;
@@ -311,6 +319,9 @@
         const receiver = departmentsData.find(d => d.name === t.assigned_to);
         const sender = departmentsData.find(d => d.name === t.assigned_by);
 
+        // തീയതി DD-MM-YYYY ഫോർമാറ്റിലേക്ക് മാറ്റുന്നു
+        const displayDate = formatDateDMY(t.target_date);
+
         let waBtn = '';
         const isSenderOrAdmin = (currentUser === t.assigned_by || currentUser === 'Admin');
 
@@ -329,7 +340,7 @@
               "",
               `*Task:* ${t.title}`,
               t.details ? `*Details:* ${t.details}` : "",
-              `*Target Date:* ${t.target_date}`,
+              `*Target Date:* ${displayDate}`,
               `*Status:* ${t.status}`,
               "",
               "ഈ വർക്ക് സംബന്ധിച്ച നിലവിലെ വിവരം ദയവായി അപ്‌ഡേറ്റ് ചെയ്യുമല്ലോ."
@@ -350,7 +361,7 @@
               "",
               `*Re:* ${t.title}`,
               t.details ? `*Details:* ${t.details}` : "",
-              `*Target Date:* ${t.target_date}`,
+              `*Target Date:* ${displayDate}`,
               "",
               "ഈ വർക്ക് പൂർത്തിയായിട്ടുണ്ട് / അപ്‌ഡേറ്റ് അറിയിക്കുന്നു. ദയവായി പരിശോധിക്കുക."
             ].filter(line => line !== null && line !== undefined);
@@ -362,6 +373,41 @@
           }
         }
 
+        return `
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <h4 class="font-bold text-slate-900 text-base">${t.title}</h4>
+                ${t.details ? `<p class="text-xs text-slate-600 mt-1 whitespace-pre-line">${t.details}</p>` : ''}
+              </div>
+              <span class="text-xs px-2.5 py-1 rounded-full font-medium ${t.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                ${t.status}
+              </span>
+            </div>
+
+            <div class="text-xs text-slate-500 mb-3 flex flex-wrap gap-2 items-center mt-2">
+              <span>📅 ${displayDate}</span>
+              <span>•</span>
+              <span class="bg-slate-100 px-2 py-0.5 rounded font-medium">To: ${t.assigned_to}${receiverHead}</span>
+              <span class="bg-purple-50 text-purple-700 px-2 py-0.5 rounded font-medium">From: ${t.assigned_by}</span>
+            </div>
+
+            ${t.remarks ? `<div class="bg-amber-50 text-amber-900 border border-amber-200 p-2.5 rounded-lg text-xs whitespace-pre-line mb-3">📝 ${t.remarks}</div>` : ''}
+
+            <div class="flex flex-wrap gap-2 pt-3 border-t text-xs items-center justify-between">
+              <div class="flex flex-wrap gap-1.5">
+                ${t.status !== 'Completed' ? `
+                  <button onclick="openActionModal(${t.id}, 'complete')" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium">✅ Complete</button>
+                  <button onclick="openActionModal(${t.id}, 'postpone')" class="px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-medium">➡️ Postpone</button>
+                  <button onclick="openActionModal(${t.id}, 'note')" class="px-3 py-1.5 bg-slate-600 text-white rounded-lg hover:bg-slate-700 font-medium">📝 Note</button>
+                ` : ''}
+                <button onclick="openEditModal(${t.id}, '${encodeURIComponent(t.title)}', '${encodeURIComponent(t.details || '')}', '${t.target_date}', '${t.assigned_to}')" class="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium">✏️ Edit</button>
+              </div>
+              <div class="mt-2 sm:mt-0">${waBtn}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
         return `
           <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
             <div class="flex justify-between items-start mb-2">
