@@ -115,9 +115,10 @@
 
   <script>
     // ----------------- CONFIGURATION -----------------
-    const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
-    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
-    const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+   // ----------------- CONFIGURATION -----------------
+const SUPABASE_URL = "https://stniqwvejaxribjfxolk.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_1KnlOZFIv_gNWeuIZRPvCw_HAEUtird";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let currentUser = localStorage.getItem("taskUser") || "";
     let currentFilter = "pending";
