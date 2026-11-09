@@ -38,7 +38,7 @@
       </div>
       <div class="flex gap-2">
         <button onclick="openModal('contactsModal')" class="px-3 py-1.5 text-xs bg-slate-100 text-slate-700 font-semibold rounded-lg hover:bg-slate-200 border">
-          👥 Phone Book
+          👥 Numbers / Heads
         </button>
         <button onclick="handleLogout()" class="px-3 py-1.5 text-xs bg-red-50 text-red-600 font-semibold rounded-lg hover:bg-red-100">
           Logout
@@ -100,7 +100,7 @@
       <h3 class="text-lg font-bold mb-4 text-purple-700">Edit Task</h3>
       <input type="hidden" id="editTaskId">
       
-      <label class="block text-sm font-medium mb-1">Assign To (Change Dept)</label>
+      <label class="block text-sm font-medium mb-1">Assign To (Department)</label>
       <select id="editTargetDept" class="w-full p-2.5 border rounded-xl mb-3 bg-slate-50"></select>
 
       <label class="block text-sm font-medium mb-1">Task Details</label>
@@ -141,12 +141,13 @@
     </div>
   </div>
 
-  <!-- CONTACTS / HEADS MODAL -->
+  <!-- CONTACTS & EDIT NUMBERS MODAL -->
   <div id="contactsModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[80vh] flex flex-col">
-      <h3 class="text-lg font-bold mb-3">Department Head Contacts</h3>
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[85vh] flex flex-col">
+      <h3 class="text-lg font-bold mb-1">Department WhatsApp Numbers</h3>
+      <p class="text-xs text-slate-500 mb-3">ഫോൺ നമ്പർ ഇവിടെ നേരിട്ട് ടൈപ്പ് ചെയ്ത് സേവ് ചെയ്യാം (ഉദാ: 919876543210)</p>
       <div id="contactsList" class="space-y-3 overflow-y-auto flex-1 pr-1"></div>
-      <button onclick="closeModal('contactsModal')" class="mt-4 w-full py-2 border rounded-xl text-sm font-semibold">Close</button>
+      <button onclick="closeModal('contactsModal')" class="mt-4 w-full py-2 bg-slate-800 text-white rounded-xl text-sm font-semibold">Close</button>
     </div>
   </div>
 
@@ -165,13 +166,18 @@
     };
 
     async function loadDepartments() {
-      const { data } = await db.from('departments').select('*');
+      const { data } = await db.from('departments').select('*').order('name');
       if (data) {
         departmentsData = data;
         const loginSelect = document.getElementById("loginDeptSelect");
         const targetSelect = document.getElementById("targetDept");
         const editSelect = document.getElementById("editTargetDept");
         const filterSelect = document.getElementById("adminDeptFilter");
+
+        loginSelect.innerHTML = '<option value="" disabled selected>Select Department</option>';
+        targetSelect.innerHTML = '';
+        editSelect.innerHTML = '';
+        filterSelect.innerHTML = '<option value="All">All Departments</option>';
 
         departmentsData.forEach(d => {
           loginSelect.add(new Option(d.name, d.name));
@@ -188,15 +194,36 @@
     function renderContacts() {
       const list = document.getElementById("contactsList");
       list.innerHTML = departmentsData.map(d => `
-        <div class="p-3 bg-slate-50 rounded-xl border flex justify-between items-center text-xs">
-          <div>
-            <div class="font-bold text-slate-800">${d.name}</div>
-            <div class="text-slate-500">${d.head_name || 'No Head Named'}</div>
-            <div class="text-blue-600 font-mono">${d.phone || 'No Phone'}</div>
+        <div class="p-3 bg-slate-50 rounded-xl border flex flex-col gap-2 text-xs">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-slate-800 text-sm">${d.name}</span>
+            ${d.phone ? `<a href="https://wa.me/${d.phone.replace(/[^0-9]/g,'')}" target="_blank" class="px-2 py-0.5 bg-green-500 text-white rounded font-bold">Chat</a>` : ''}
           </div>
-          ${d.phone ? `<a href="https://wa.me/${d.phone.replace(/[^0-9]/g,'')}" target="_blank" class="px-2.5 py-1 bg-green-500 text-white rounded-lg font-bold">WhatsApp</a>` : ''}
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" id="head_${d.id}" placeholder="Head Name" value="${d.head_name || ''}" class="p-1.5 border rounded bg-white">
+            <input type="text" id="phone_${d.id}" placeholder="91XXXXXXXXXX" value="${d.phone || ''}" class="p-1.5 border rounded bg-white">
+          </div>
+          <button onclick="saveContact(${d.id})" class="self-end px-3 py-1 bg-blue-600 text-white rounded font-medium">Save Number</button>
         </div>
       `).join('');
+    }
+
+    async function saveContact(deptId) {
+      const headName = document.getElementById(`head_${deptId}`).value.trim();
+      const phone = document.getElementById(`phone_${deptId}`).value.trim();
+
+      const { error } = await db.from('departments').update({
+        head_name: headName,
+        phone: phone
+      }).eq('id', deptId);
+
+      if (!error) {
+        alert("Saved successfully!");
+        await loadDepartments();
+        loadTasks();
+      } else {
+        alert("Failed to save: " + error.message);
+      }
     }
 
     async function handleLogin() {
@@ -275,17 +302,31 @@
       }
 
       container.innerHTML = tasks.map(t => {
-        // WhatsApp ലിങ്ക് തയ്യാറാക്കൽ
-        const receiverDept = departmentsData.find(d => d.name === t.assigned_to);
-        const senderDept = departmentsData.find(d => d.name === t.assigned_by);
+        const receiver = departmentsData.find(d => d.name === t.assigned_to);
+        const sender = departmentsData.find(d => d.name === t.assigned_by);
 
+        // WhatsApp Button Logic: എല്ലാ കാർഡിലും നിർബന്ധമായും ബട്ടൺ ഉണ്ടാകും
         let waBtn = '';
-        if (currentFilter === 'sent' && receiverDept?.phone) {
-          const msg = encodeURIComponent(`Hello, task update request:\n📌 *${t.title}*\nTarget Date: ${t.target_date}\nStatus: ${t.status}\nIs this work completed?`);
-          waBtn = `<a href="https://wa.me/${receiverDept.phone.replace(/[^0-9]/g,'')}?text=${msg}" target="_blank" class="px-2.5 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg flex items-center gap-1 font-semibold text-xs">💬 Ask Update</a>`;
-        } else if (currentFilter === 'completed' && senderDept?.phone) {
-          const msg = encodeURIComponent(`Hello, task completed notification:\n✅ *${t.title}*\nCompleted successfully. Please check.`);
-          waBtn = `<a href="https://wa.me/${senderDept.phone.replace(/[^0-9]/g,'')}?text=${msg}" target="_blank" class="px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-1 font-semibold text-xs">💬 Inform Sender</a>`;
+        const isSenderOrAdmin = (currentUser === t.assigned_by || currentUser === 'Admin');
+
+        if (isSenderOrAdmin) {
+          // റിസീവർക്ക് റിമൈൻഡർ അയക്കുന്നു
+          if (receiver && receiver.phone) {
+            const cleanPhone = receiver.phone.replace(/[^0-9]/g, '');
+            const msg = encodeURIComponent(`Assalamu Alaikum,\nReminder on Task: *${t.title}*\nTarget Date: ${t.target_date}\nStatus: ${t.status}\n\nഈ വർക്ക് പൂർത്തിയായിട്ടുണ്ടോ? ദയവായി അപ്‌ഡേറ്റ് അറിയിക്കുമല്ലോ.`);
+            waBtn = `<a href="https://wa.me/${cleanPhone}?text=${msg}" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1 font-semibold text-xs shadow-sm">💬 WhatsApp ${t.assigned_to}</a>`;
+          } else {
+            waBtn = `<button onclick="openModal('contactsModal')" class="px-2.5 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-300">⚠️ Add Phone (${t.assigned_to})</button>`;
+          }
+        } else {
+          // ടാസ്ക് കിട്ടിയ ആൾ സെൻഡർക്ക് റിപ്ലൈ നൽകുന്നു
+          if (sender && sender.phone) {
+            const cleanPhone = sender.phone.replace(/[^0-9]/g, '');
+            const msg = encodeURIComponent(`Assalamu Alaikum,\nReply on Task: *${t.title}*\nTarget Date: ${t.target_date}\n\nഈ വർക്ക് സംബന്ധിച്ച അപ്‌ഡേറ്റ് അറിയിക്കുന്നു.`);
+            waBtn = `<a href="https://wa.me/${cleanPhone}?text=${msg}" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1 font-semibold text-xs shadow-sm">💬 Reply to ${t.assigned_by}</a>`;
+          } else {
+            waBtn = `<button onclick="openModal('contactsModal')" class="px-2.5 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-300">⚠️ Add Phone (${t.assigned_by})</button>`;
+          }
         }
 
         return `
@@ -306,8 +347,8 @@
 
             ${t.remarks ? `<div class="bg-amber-50 text-amber-900 border border-amber-200 p-2.5 rounded-lg text-xs whitespace-pre-line mb-3">📝 ${t.remarks}</div>` : ''}
 
-            <div class="flex flex-wrap gap-2 pt-2 border-t text-xs items-center justify-between">
-              <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2 pt-3 border-t text-xs items-center justify-between">
+              <div class="flex flex-wrap gap-1.5">
                 ${t.status !== 'Completed' ? `
                   <button onclick="openActionModal(${t.id}, 'complete')" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium">✅ Complete</button>
                   <button onclick="openActionModal(${t.id}, 'postpone')" class="px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-medium">➡️ Postpone</button>
@@ -315,7 +356,7 @@
                 ` : ''}
                 <button onclick="openEditModal(${t.id}, '${encodeURIComponent(t.title)}', '${t.target_date}', '${t.assigned_to}')" class="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium">✏️ Edit</button>
               </div>
-              <div>${waBtn}</div>
+              <div class="mt-2 sm:mt-0">${waBtn}</div>
             </div>
           </div>
         `;
