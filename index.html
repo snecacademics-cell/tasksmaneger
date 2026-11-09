@@ -411,6 +411,7 @@
       let query = db.from('tasks').select('*');
 
       if (currentFilter === 'sent') {
+        // അയച്ച ടാസ്കുകളിൽ ഇപ്പോഴും തീരാത്തവയും (Pending) അല്ലെങ്കിൽ തീർത്തെങ്കിലും സെൻഡർ ആർക്കൈവ് ചെയ്യാത്തവയും മാത്രം
         query = query.eq('assigned_by', currentUser);
       } else {
         if (currentUser !== 'Admin') {
@@ -429,7 +430,13 @@
         }
       }
 
-      query = query.order('target_date', { ascending: true });
+      // തീയതി അടുത്തുവരുന്ന ക്രമത്തിൽ (Ascending: ഇന്ന് ചെയ്യേണ്ടവ ഏറ്റവും മുകളിൽ)
+      if (currentFilter === 'completed') {
+        query = query.order('target_date', { ascending: false }); // ഹിസ്റ്ററിയിൽ ഏറ്റവും പുതിയത് മുകളിൽ
+      } else {
+        query = query.order('target_date', { ascending: true }); // പെൻഡിംഗിൽ ആദ്യം തീർക്കേണ്ട തീയതി മുകളിൽ
+      }
+
       const { data: tasks } = await query;
 
       if (!tasks || tasks.length === 0) {
@@ -447,14 +454,13 @@
         let waBtn = '';
         const isSenderOrAdmin = (currentUser === t.assigned_by || currentUser === 'Admin');
 
-        // Target Name & Phone
         let targetDisplayName = isExternal ? (t.external_name || 'Teacher/Person') : (isSelf ? 'Self' : t.assigned_to);
         let targetPhone = isExternal ? (t.external_phone || '') : (receiver?.phone || '');
         const receiverHead = (!isExternal && !isSelf && receiver?.head_name) ? ' (' + receiver.head_name + ')' : '';
         const senderHead = (sender && sender.head_name) ? ' (' + sender.head_name + ')' : '';
 
-        // WhatsApp Button Logic
-        if (!isSelf) {
+        // WhatsApp Button
+        if (!isSelf && t.status !== 'Completed') {
           if (isSenderOrAdmin) {
             if (targetPhone) {
               const cleanPhone = targetPhone.replace(/[^0-9]/g, '');
@@ -475,25 +481,6 @@
             } else {
               waBtn = '<button onclick="openEditModal(' + t.id + ', \'' + encodeURIComponent(t.title) + '\', \'' + encodeURIComponent(t.details || '') + '\', \'' + t.target_date + '\', \'' + t.assigned_to + '\', \'' + (t.assignee_type || 'department') + '\', \'' + encodeURIComponent(t.external_name || '') + '\', \'' + (t.external_phone || '') + '\')" class="w-full sm:w-auto px-3 py-1.5 bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold">⚠️ Add Phone (' + targetDisplayName + ')</button>';
             }
-          } else {
-            if (sender && sender.phone) {
-              const cleanPhone = sender.phone.replace(/[^0-9]/g, '');
-              const msgLines = [
-                "Assalamu Alaikum,",
-                "To: *" + t.assigned_by + "*" + senderHead,
-                "",
-                "*Re:* " + t.title,
-                t.details ? "*Details:* " + t.details : "",
-                "*Target Date:* " + displayDate,
-                "",
-                "ഈ വർക്ക് പൂർത്തിയായിട്ടുണ്ട് / അപ്‌ഡേറ്റ് അറിയിക്കുന്നു. ദയവായി പരിശോധിക്കുക."
-              ].filter(function(line) { return line !== ""; });
-
-              const finalMsg = encodeURIComponent(msgLines.join("\n"));
-              waBtn = '<a href="https://api.whatsapp.com/send?phone=' + cleanPhone + '&text=' + finalMsg + '" target="_blank" class="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl flex items-center justify-center gap-1.5 font-bold text-xs sm:text-sm shadow-sm transition">💬 Reply to ' + t.assigned_by + '</a>';
-            } else {
-              waBtn = '<button onclick="openModal(\'contactsModal\')" class="w-full sm:w-auto px-3 py-1.5 bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold">⚠️ Add Phone (' + t.assigned_by + ')</button>';
-            }
           }
         }
 
@@ -512,16 +499,25 @@
 
         const editArgs = t.id + ', \'' + encodeURIComponent(t.title) + '\', \'' + encodeURIComponent(t.details || '') + '\', \'' + t.target_date + '\', \'' + t.assigned_to + '\', \'' + (t.assignee_type || 'department') + '\', \'' + encodeURIComponent(t.external_name || '') + '\', \'' + (t.external_phone || '') + '\'';
 
-        const actionButtons = (t.status !== 'Completed') ? 
-          '<div class="grid grid-cols-4 sm:flex gap-1.5 sm:gap-2 flex-1">' +
+        // Action Buttons: പൂർത്തിയായതാണെങ്കിൽ Move to History അല്ലെങ്കിൽ Edit മാത്രം
+        let actionButtons = '';
+        if (t.status !== 'Completed') {
+          actionButtons = '<div class="grid grid-cols-4 sm:flex gap-1.5 sm:gap-2 flex-1">' +
             '<button onclick="openActionModal(' + t.id + ', \'complete\')" class="py-1.5 sm:py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-center text-xs sm:text-sm transition">Done</button>' +
             '<button onclick="openActionModal(' + t.id + ', \'postpone\')" class="py-1.5 sm:py-2 px-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold text-center text-xs sm:text-sm transition">Postpone</button>' +
             '<button onclick="openActionModal(' + t.id + ', \'note\')" class="py-1.5 sm:py-2 px-3 bg-slate-600 hover:bg-slate-700 text-white rounded-xl font-semibold text-center text-xs sm:text-sm transition">Note</button>' +
             '<button onclick="openEditModal(' + editArgs + ')" class="py-1.5 sm:py-2 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold text-center text-xs sm:text-sm transition">Edit</button>' +
-          '</div>' : 
-          '<div class="flex justify-end flex-1">' +
+          '</div>';
+        } else {
+          // Sent ലിസ്റ്റിൽ കിടക്കുന്ന പൂർത്തിയായ ടാസ്കുകൾ ഹിസ്റ്ററിയിലേക്ക് മാറ്റാനുള്ള ബട്ടൺ
+          const archiveBtn = (currentFilter === 'sent') 
+            ? '<button onclick="archiveSentTask(' + t.id + ')" class="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl font-semibold text-xs sm:text-sm hover:bg-blue-100 flex items-center gap-1">📦 Move to History</button>' 
+            : '';
+          actionButtons = '<div class="flex items-center justify-between gap-2 flex-1">' +
+            archiveBtn +
             '<button onclick="openEditModal(' + editArgs + ')" class="px-4 py-1.5 bg-purple-600 text-white rounded-xl font-semibold text-xs sm:text-sm">Edit</button>' +
           '</div>';
+        }
 
         return '<div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition">' +
           '<div class="flex justify-between items-start gap-2 mb-1.5">' +
@@ -551,6 +547,14 @@
           '</div>' +
         '</div>';
       }).join('');
+    }
+
+    // Sent ടാബിൽ നിന്നും ഹിസ്റ്ററിയിലേക്ക് പൂർണ്ണമായി മാറ്റാനുള്ള ഫംഗ്ഷൻ
+    async function archiveSentTask(id) {
+      if (confirm("ഈ ടാസ്ക് പൂർത്തിയായിട്ടുണ്ടോ? ഹിസ്റ്ററിയിലേക്ക് മാറ്റട്ടേ?")) {
+        await db.from('tasks').update({ remarks: 'Archived from Sent View' }).eq('id', id);
+        loadTasks();
+      }
     }
 
     // ADD TASK
