@@ -216,6 +216,21 @@
       </div>
     </div>
   </div>
+  <!-- CUSTOM ARCHIVE CONFIRMATION MODAL -->
+  <div id="archiveModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl text-center border border-slate-100">
+      <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
+        📦
+      </div>
+      <h3 class="text-base font-bold text-slate-800 mb-1">Move to History?</h3>
+      <p class="text-xs text-slate-500 mb-4">ഈ ടാസ്ക് പൂർത്തിയായിട്ടുണ്ട്. ഇത് Sent ലിസ്റ്റിൽ നിന്ന് നീക്കി History-യിലേക്ക് മാറ്റട്ടെ?</p>
+      <input type="hidden" id="archiveTargetId">
+      <div class="flex gap-2">
+        <button type="button" onclick="closeModal('archiveModal')" class="flex-1 py-2 border rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50">Cancel</button>
+        <button type="button" onclick="confirmArchiveExecution()" class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow">Yes, Move</button>
+      </div>
+    </div>
+  </div>
 
   <!-- CONTACTS MODAL -->
   <div id="contactsModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
@@ -411,9 +426,21 @@
       let query = db.from('tasks').select('*');
 
       if (currentFilter === 'sent') {
-        // അയച്ചവയിൽ നിന്ന് ഹിസ്റ്ററിയിലേക്ക് മാറ്റാത്തവ (is_archived അല്ലാത്തവ) മാത്രം കാണിക്കുന്നു
+        // Sent ലിസ്റ്റിൽ: അയച്ചവയിൽ നിന്ന് ഹിസ്റ്ററിയിലേക്ക് മാറ്റാത്തവ (is_archived = false) മാത്രം കാണിക്കുന്നു
         query = query.eq('assigned_by', currentUser).eq('is_archived', false);
+      } else if (currentFilter === 'completed') {
+        // History ലിസ്റ്റിൽ: ആ ഡിപ്പാർട്ട്മെന്റിന് വന്നതോ അവർ അയച്ചതോ ആയ എല്ലാ പൂർത്തിയായ ടാസ്കുകളും കാണിക്കും
+        if (currentUser !== 'Admin') {
+          query = query.or(`assigned_to.eq.${currentUser},assigned_by.eq.${currentUser}`).eq('status', 'Completed');
+        } else {
+          const adminFilter = document.getElementById("adminDeptFilter").value;
+          if (adminFilter !== "All") {
+            query = query.eq('assigned_to', adminFilter);
+          }
+          query = query.eq('status', 'Completed');
+        }
       } else {
+        // Upcoming / Pending ടാസ്കുകൾ
         if (currentUser !== 'Admin') {
           query = query.eq('assigned_to', currentUser);
         } else {
@@ -422,22 +449,17 @@
             query = query.eq('assigned_to', adminFilter);
           }
         }
-
-        if (currentFilter === 'completed') {
-          query = query.eq('status', 'Completed');
-        } else {
-          query = query.neq('status', 'Completed');
-        }
+        query = query.neq('status', 'Completed');
       }
 
-      // തീയതി ക്രമം: പെൻഡിംഗ് ആദ്യം ചെയ്യേണ്ടവ മുകളിൽ, ഹിസ്റ്ററിയിൽ പുതിയത് മുകളിൽ
+      // തീയതി ക്രമം
       if (currentFilter === 'completed') {
-        query = query.order('target_date', { ascending: false });
+        query = query.order('target_date', { ascending: false }); // ഹിസ്റ്ററിയിൽ ഏറ്റവും പുതിയത് മുകളിൽ
       } else {
-        query = query.order('target_date', { ascending: true });
+        query = query.order('target_date', { ascending: true }); // പെൻഡിംഗിൽ ആദ്യം ചെയ്യേണ്ട തീയതി മുകളിൽ
       }
 
-      const { data: tasks } = await query;
+      const { data: tasks, error } = await query;
 
       if (!tasks || tasks.length === 0) {
         container.innerHTML = '<p class="text-center text-slate-400 py-12 text-sm text-slate-500">No tasks found in this view.</p>';
@@ -499,7 +521,6 @@
 
         const editArgs = t.id + ', \'' + encodeURIComponent(t.title) + '\', \'' + encodeURIComponent(t.details || '') + '\', \'' + t.target_date + '\', \'' + t.assigned_to + '\', \'' + (t.assignee_type || 'department') + '\', \'' + encodeURIComponent(t.external_name || '') + '\', \'' + (t.external_phone || '') + '\'';
 
-        // ആക്ഷൻ ബട്ടണുകൾ: Completed ആണെങ്കിൽ Move to History ബട്ടൺ വരും
         let actionButtons = '';
         if (t.status !== 'Completed') {
           actionButtons = '<div class="grid grid-cols-4 sm:flex gap-1.5 sm:gap-2 flex-1">' +
@@ -509,9 +530,9 @@
             '<button onclick="openEditModal(' + editArgs + ')" class="py-1.5 sm:py-2 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold text-center text-xs sm:text-sm transition">Edit</button>' +
           '</div>';
         } else {
-          // ഇതാ ഇവിടെയാണ് Move to History ബട്ടൺ ചേർത്തിരിക്കുന്നത്
+          // Sent ടാബിൽ പൂർത്തിയായതിന് Move to History ബട്ടൺ
           const archiveBtn = (currentFilter === 'sent') 
-            ? '<button onclick="archiveSentTask(' + t.id + ')" class="px-3.5 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 transition">📦 Move to History</button>' 
+            ? '<button onclick="openArchiveModal(' + t.id + ')" class="px-3.5 py-1.5 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 transition">📦 Move to History</button>' 
             : '';
 
           actionButtons = '<div class="flex items-center justify-between gap-2 flex-1">' +
@@ -550,11 +571,26 @@
       }).join('');
     }
 
-    // ആർക്കൈവ് ചെയ്യുന്നതിനുള്ള ഫംഗ്ഷൻ (സ്ക്രിപ്റ്റിന്റെ താഴെ ഇതും ചേർക്കുക)
-    async function archiveSentTask(id) {
-      if (confirm("ഈ ടാസ്ക് പൂർത്തിയായിട്ടുണ്ട്. ഇത് Sent ലിസ്റ്റിൽ നിന്ന് നീക്കി പൂർണ്ണമായി History-യിലേക്ക് മാറ്റട്ടേ?")) {
-        await db.from('tasks').update({ is_archived: true }).eq('id', id);
+    // മോഡൽ തുറക്കാൻ
+    function openArchiveModal(id) {
+      document.getElementById('archiveTargetId').value = id;
+      openModal('archiveModal');
+    }
+
+    // ഹിസ്റ്ററിയിലേക്ക് മാറ്റുന്ന പ്രധാന ഫംഗ്ഷൻ
+    async function confirmArchiveExecution() {
+      const id = document.getElementById('archiveTargetId').value;
+      closeModal('archiveModal');
+
+      const { error } = await db.from('tasks').update({
+        status: 'Completed',
+        is_archived: true
+      }).eq('id', id);
+
+      if (!error) {
         loadTasks();
+      } else {
+        alert("Update failed: " + error.message);
       }
     }
 
