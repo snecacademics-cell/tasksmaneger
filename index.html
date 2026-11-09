@@ -166,19 +166,20 @@
     let currentFilter = "pending";
     let departmentsData = [];
 
-    // DATE CONVERTER: yyyy-mm-dd -> dd-mm-yyyy
     function formatDateDMY(dateStr) {
       if (!dateStr) return "";
       const parts = dateStr.split("-");
       if (parts.length === 3) {
-        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        return parts[2] + "-" + parts[1] + "-" + parts[0];
       }
       return dateStr;
     }
 
-    window.onload = async () => {
+    window.onload = async function() {
       await loadDepartments();
-      if (currentUser) initDashboard();
+      if (currentUser) {
+        initDashboard();
+      }
     };
 
     async function loadDepartments() {
@@ -195,7 +196,7 @@
         editSelect.innerHTML = '';
         filterSelect.innerHTML = '<option value="All">All Departments</option>';
 
-        departmentsData.forEach(d => {
+        departmentsData.forEach(function(d) {
           loginSelect.add(new Option(d.name, d.name));
           if (d.name !== 'Admin') {
             targetSelect.add(new Option(d.name, d.name));
@@ -209,24 +210,25 @@
 
     function renderContacts() {
       const list = document.getElementById("contactsList");
-      list.innerHTML = departmentsData.map(d => `
-        <div class="p-3 bg-slate-50 rounded-xl border flex flex-col gap-2 text-xs">
-          <div class="flex justify-between items-center">
-            <span class="font-bold text-slate-800 text-sm">${d.name}</span>
-            ${d.phone ? `<a href="https://wa.me/${d.phone.replace(/[^0-9]/g,'')}" target="_blank" class="px-2 py-0.5 bg-green-500 text-white rounded font-bold">Chat</a>` : ''}
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <input type="text" id="head_${d.id}" placeholder="Head Name / Role" value="${d.head_name || ''}" class="p-1.5 border rounded bg-white">
-            <input type="text" id="phone_${d.id}" placeholder="91XXXXXXXXXX" value="${d.phone || ''}" class="p-1.5 border rounded bg-white">
-          </div>
-          <button onclick="saveContact(${d.id})" class="self-end px-3 py-1 bg-blue-600 text-white rounded font-medium">Save Number</button>
-        </div>
-      `).join('');
+      list.innerHTML = departmentsData.map(function(d) {
+        const chatLink = d.phone ? '<a href="https://wa.me/' + d.phone.replace(/[^0-9]/g,'') + '" target="_blank" class="px-2 py-0.5 bg-green-500 text-white rounded font-bold">Chat</a>' : '';
+        return '<div class="p-3 bg-slate-50 rounded-xl border flex flex-col gap-2 text-xs">' +
+          '<div class="flex justify-between items-center">' +
+            '<span class="font-bold text-slate-800 text-sm">' + d.name + '</span>' +
+            chatLink +
+          '</div>' +
+          '<div class="grid grid-cols-2 gap-2">' +
+            '<input type="text" id="head_' + d.id + '" placeholder="Head Name / Role" value="' + (d.head_name || '') + '" class="p-1.5 border rounded bg-white">' +
+            '<input type="text" id="phone_' + d.id + '" placeholder="91XXXXXXXXXX" value="' + (d.phone || '') + '" class="p-1.5 border rounded bg-white">' +
+          '</div>' +
+          '<button onclick="saveContact(' + d.id + ')" class="self-end px-3 py-1 bg-blue-600 text-white rounded font-medium">Save Number</button>' +
+        '</div>';
+      }).join('');
     }
 
     async function saveContact(deptId) {
-      const headName = document.getElementById(`head_${deptId}`).value.trim();
-      const phone = document.getElementById(`phone_${deptId}`).value.trim();
+      const headName = document.getElementById('head_' + deptId).value.trim();
+      const phone = document.getElementById('phone_' + deptId).value.trim();
 
       const { error } = await db.from('departments').update({
         head_name: headName,
@@ -277,8 +279,8 @@
 
     function setFilter(type) {
       currentFilter = type;
-      ['pending', 'sent', 'completed'].forEach(tab => {
-        const btn = document.getElementById(`tab-${tab}`);
+      ['pending', 'sent', 'completed'].forEach(function(tab) {
+        const btn = document.getElementById('tab-' + tab);
         btn.className = (tab === type)
           ? "px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 text-white shadow-sm"
           : "px-4 py-2 text-sm font-semibold rounded-xl bg-white text-slate-600 border";
@@ -288,7 +290,7 @@
 
     async function loadTasks() {
       const container = document.getElementById("taskContainer");
-      container.innerHTML = `<p class="text-center text-slate-400 py-10">Loading...</p>`;
+      container.innerHTML = '<p class="text-center text-slate-400 py-10">Loading...</p>';
 
       let query = db.from('tasks').select('*');
 
@@ -299,7 +301,9 @@
           query = query.eq('assigned_to', currentUser);
         } else {
           const adminFilter = document.getElementById("adminDeptFilter").value;
-          if (adminFilter !== "All") query = query.eq('assigned_to', adminFilter);
+          if (adminFilter !== "All") {
+            query = query.eq('assigned_to', adminFilter);
+          }
         }
 
         if (currentFilter === 'completed') {
@@ -313,95 +317,98 @@
       const { data: tasks } = await query;
 
       if (!tasks || tasks.length === 0) {
-        container.innerHTML = `<p class="text-center text-slate-400 py-10">No tasks found.</p>`;
+        container.innerHTML = '<p class="text-center text-slate-400 py-10">No tasks found.</p>';
         return;
       }
 
-      container.innerHTML = tasks.map(t => {
-        const receiver = departmentsData.find(d => d.name === t.assigned_to);
-        const sender = departmentsData.find(d => d.name === t.assigned_by);
+      container.innerHTML = tasks.map(function(t) {
+        const receiver = departmentsData.find(function(d) { return d.name === t.assigned_to; });
+        const sender = departmentsData.find(function(d) { return d.name === t.assigned_by; });
         const displayDate = formatDateDMY(t.target_date);
 
         let waBtn = '';
         const isSenderOrAdmin = (currentUser === t.assigned_by || currentUser === 'Admin');
-        const receiverHead = receiver?.head_name ? ` (${receiver.head_name})` : '';
-        const senderHead = sender?.head_name ? ` (${sender.head_name})` : '';
+        const receiverHead = (receiver && receiver.head_name) ? ' (' + receiver.head_name + ')' : '';
+        const senderHead = (sender && sender.head_name) ? ' (' + sender.head_name + ')' : '';
 
         if (isSenderOrAdmin) {
           if (receiver && receiver.phone) {
             const cleanPhone = receiver.phone.replace(/[^0-9]/g, '');
             const msgLines = [
               "Assalamu Alaikum,",
-              `To: *${t.assigned_to}*${receiverHead}`,
+              "To: *" + t.assigned_to + "*" + receiverHead,
               "",
-              `*Task:* ${t.title}`,
-              t.details ? `*Details:* ${t.details}` : "",
-              `*Target Date:* ${displayDate}`,
-              `*Status:* ${t.status}`,
+              "*Task:* " + t.title,
+              t.details ? "*Details:* " + t.details : "",
+              "*Target Date:* " + displayDate,
+              "*Status:* " + t.status,
               "",
               "ഈ വർക്ക് സംബന്ധിച്ച നിലവിലെ വിവരം ദയവായി അപ്‌ഡേറ്റ് ചെയ്യുമല്ലോ."
-            ].filter(line => line !== null && line !== undefined && line !== "");
+            ].filter(function(line) { return line !== ""; });
 
             const finalMsg = encodeURIComponent(msgLines.join("\n"));
-            waBtn = `<a href="https://api.whatsapp.com/send?phone=${cleanPhone}&text=${finalMsg}" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1 font-semibold text-xs shadow-sm">💬 WhatsApp ${t.assigned_to}</a>`;
+            waBtn = '<a href="https://api.whatsapp.com/send?phone=' + cleanPhone + '&text=' + finalMsg + '" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1 font-semibold text-xs shadow-sm">💬 WhatsApp ' + t.assigned_to + '</a>';
           } else {
-            waBtn = `<button onclick="openModal('contactsModal')" class="px-2.5 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-300">⚠️ Add Phone (${t.assigned_to})</button>`;
+            waBtn = '<button onclick="openModal(\'contactsModal\')" class="px-2.5 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-300">⚠️ Add Phone (' + t.assigned_to + ')</button>';
           }
         } else {
           if (sender && sender.phone) {
             const cleanPhone = sender.phone.replace(/[^0-9]/g, '');
             const msgLines = [
               "Assalamu Alaikum,",
-              `To: *${t.assigned_by}*${senderHead}`,
+              "To: *" + t.assigned_by + "*" + senderHead,
               "",
-              `*Re:* ${t.title}`,
-              t.details ? `*Details:* ${t.details}` : "",
-              `*Target Date:* ${displayDate}`,
+              "*Re:* " + t.title,
+              t.details ? "*Details:* " + t.details : "",
+              "*Target Date:* " + displayDate,
               "",
               "ഈ വർക്ക് പൂർത്തിയായിട്ടുണ്ട് / അപ്‌ഡേറ്റ് അറിയിക്കുന്നു. ദയവായി പരിശോധിക്കുക."
-            ].filter(line => line !== null && line !== undefined && line !== "");
+            ].filter(function(line) { return line !== ""; });
 
             const finalMsg = encodeURIComponent(msgLines.join("\n"));
-            waBtn = `<a href="https://api.whatsapp.com/send?phone=${cleanPhone}&text=${finalMsg}" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1 font-semibold text-xs shadow-sm">💬 Reply to ${t.assigned_by}</a>`;
+            waBtn = '<a href="https://api.whatsapp.com/send?phone=' + cleanPhone + '&text=' + finalMsg + '" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1 font-semibold text-xs shadow-sm">💬 Reply to ' + t.assigned_by + '</a>';
           } else {
-            waBtn = `<button onclick="openModal('contactsModal')" class="px-2.5 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-300">⚠️ Add Phone (${t.assigned_by})</button>`;
+            waBtn = '<button onclick="openModal(\'contactsModal\')" class="px-2.5 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-300">⚠️ Add Phone (' + t.assigned_by + ')</button>';
           }
         }
 
-        return `
-          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex justify-between items-start mb-2">
-              <div>
-                <h4 class="font-bold text-slate-900 text-base">${t.title}</h4>
-                ${t.details ? `<p class="text-xs text-slate-600 mt-1 whitespace-pre-line">${t.details}</p>` : ''}
-              </div>
-              <span class="text-xs px-2.5 py-1 rounded-full font-medium ${t.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
-                ${t.status}
-              </span>
-            </div>
+        const detailsHtml = t.details ? '<p class="text-xs text-slate-600 mt-1 whitespace-pre-line">' + t.details + '</p>' : '';
+        const remarksHtml = t.remarks ? '<div class="bg-amber-50 text-amber-900 border border-amber-200 p-2.5 rounded-lg text-xs whitespace-pre-line mb-3">📝 ' + t.remarks + '</div>' : '';
+        const statusBadgeClass = (t.status === 'Completed') ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700';
 
-            <div class="text-xs text-slate-500 mb-3 flex flex-wrap gap-2 items-center mt-2">
-              <span>📅 ${displayDate}</span>
-              <span>•</span>
-              <span class="bg-slate-100 px-2 py-0.5 rounded font-medium">To: ${t.assigned_to}${receiverHead}</span>
-              <span class="bg-purple-50 text-purple-700 px-2 py-0.5 rounded font-medium">From: ${t.assigned_by}</span>
-            </div>
+        const actionButtons = (t.status !== 'Completed') ? 
+          '<button onclick="openActionModal(' + t.id + ', \'complete\')" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium">✅ Complete</button>' +
+          '<button onclick="openActionModal(' + t.id + ', \'postpone\')" class="px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-medium">➡️ Postpone</button>' +
+          '<button onclick="openActionModal(' + t.id + ', \'note\')" class="px-3 py-1.5 bg-slate-600 text-white rounded-lg hover:bg-slate-700 font-medium">📝 Note</button>' : '';
 
-            ${t.remarks ? `<div class="bg-amber-50 text-amber-900 border border-amber-200 p-2.5 rounded-lg text-xs whitespace-pre-line mb-3">📝 ${t.remarks}</div>` : ''}
+        return '<div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">' +
+          '<div class="flex justify-between items-start mb-2">' +
+            '<div>' +
+              '<h4 class="font-bold text-slate-900 text-base">' + t.title + '</h4>' +
+              detailsHtml +
+            '</div>' +
+            '<span class="text-xs px-2.5 py-1 rounded-full font-medium ' + statusBadgeClass + '">' +
+              t.status +
+            '</span>' +
+          '</div>' +
 
-            <div class="flex flex-wrap gap-2 pt-3 border-t text-xs items-center justify-between">
-              <div class="flex flex-wrap gap-1.5">
-                ${t.status !== 'Completed' ? `
-                  <button onclick="openActionModal(${t.id}, 'complete')" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium">✅ Complete</button>
-                  <button onclick="openActionModal(${t.id}, 'postpone')" class="px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-medium">➡️ Postpone</button>
-                  <button onclick="openActionModal(${t.id}, 'note')" class="px-3 py-1.5 bg-slate-600 text-white rounded-lg hover:bg-slate-700 font-medium">📝 Note</button>
-                ` : ''}
-                <button onclick="openEditModal(${t.id}, '${encodeURIComponent(t.title)}', '${encodeURIComponent(t.details || '')}', '${t.target_date}', '${t.assigned_to}')" class="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium">✏️ Edit</button>
-              </div>
-              <div class="mt-2 sm:mt-0">${waBtn}</div>
-            </div>
-          </div>
-        `;
+          '<div class="text-xs text-slate-500 mb-3 flex flex-wrap gap-2 items-center mt-2">' +
+            '<span>📅 ' + displayDate + '</span>' +
+            '<span>•</span>' +
+            '<span class="bg-slate-100 px-2 py-0.5 rounded font-medium">To: ' + t.assigned_to + receiverHead + '</span>' +
+            '<span class="bg-purple-50 text-purple-700 px-2 py-0.5 rounded font-medium">From: ' + t.assigned_by + '</span>' +
+          '</div>' +
+
+          remarksHtml +
+
+          '<div class="flex flex-wrap gap-2 pt-3 border-t text-xs items-center justify-between">' +
+            '<div class="flex flex-wrap gap-1.5">' +
+              actionButtons +
+              '<button onclick="openEditModal(' + t.id + ', \'' + encodeURIComponent(t.title) + '\', \'' + encodeURIComponent(t.details || '') + '\', \'' + t.target_date + '\', \'' + t.assigned_to + '\')" class="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium">✏️ Edit</button>' +
+            '</div>' +
+            '<div class="mt-2 sm:mt-0">' + waBtn + '</div>' +
+          '</div>' +
+        '</div>';
       }).join('');
     }
 
@@ -468,7 +475,7 @@
       }
     }
 
-    // ACTION MODAL (Complete, Postpone, Note)
+    // ACTION MODAL
     function openActionModal(id, type) {
       document.getElementById("actionTaskId").value = id;
       document.getElementById("actionType").value = type;
@@ -482,7 +489,7 @@
         dateGroup.classList.remove("hidden");
       } else {
         dateGroup.classList.add("hidden");
-        title.innerText = type === 'complete' ? "Complete Task" : "Add Note";
+        title.innerText = (type === 'complete') ? "Complete Task" : "Add Note";
       }
 
       openModal('actionModal');
@@ -495,19 +502,21 @@
       const newDate = document.getElementById("actionNewDate").value;
 
       const { data: task } = await db.from('tasks').select('remarks').eq('id', id).single();
-      let currentRemarks = task?.remarks || "";
+      let currentRemarks = (task && task.remarks) ? task.remarks : "";
       let updates = {};
 
       if (type === 'complete') {
         updates.status = 'Completed';
-        if (reason) updates.remarks = currentRemarks ? `${currentRemarks}\n[Completed: ${reason}]` : `Completed: ${reason}`;
+        if (reason) {
+          updates.remarks = currentRemarks ? currentRemarks + "\n[Completed: " + reason + "]" : "Completed: " + reason;
+        }
       } else if (type === 'postpone') {
         if (!newDate) { alert("Please pick a new date"); return; }
         updates.target_date = newDate;
-        updates.remarks = currentRemarks ? `${currentRemarks}\n[Postponed to ${newDate}: ${reason}]` : `Postponed to ${newDate}: ${reason}`;
+        updates.remarks = currentRemarks ? currentRemarks + "\n[Postponed to " + newDate + ": " + reason + "]" : "Postponed to " + newDate + ": " + reason;
       } else if (type === 'note') {
         if (!reason) { alert("Please enter a note"); return; }
-        updates.remarks = currentRemarks ? `${currentRemarks}\n• ${reason}` : `• ${reason}`;
+        updates.remarks = currentRemarks ? currentRemarks + "\n• " + reason : "• " + reason;
       }
 
       await db.from('tasks').update(updates).eq('id', id);
