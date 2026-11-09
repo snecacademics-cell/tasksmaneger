@@ -321,27 +321,42 @@
         if (isSenderOrAdmin) {
           if (receiver && receiver.phone) {
             const cleanPhone = receiver.phone.replace(/[^0-9]/g, '');
-            let msg = `Assalamu Alaikum,\nTo: *${t.assigned_to}*${receiverHead}\n\n`;
-            msg += `📌 *Task:* ${t.title}\n`;
-            if (t.details) msg += `📝 *Details / Ref:* ${t.details}\n`;
-            msg += `📅 *Target Date:* ${t.target_date}\n`;
-            msg += `📊 *Status:* ${t.status}\n\n`;
-            msg += `ഈ വർക്ക് സംബന്ധിച്ച നിലവിലെ വിവരം ദയവായി അപ്‌ഡേറ്റ് ചെയ്യുമല്ലോ.`;
+            
+            // എൻകോഡിംഗ് പ്രശ്നം ഇല്ലാത്ത വൃത്തിയുള്ള ഫോർമാറ്റ്
+            const msgLines = [
+              "Assalamu Alaikum,",
+              `To: *${t.assigned_to}*${receiverHead}`,
+              "",
+              `*Task:* ${t.title}`,
+              t.details ? `*Details:* ${t.details}` : "",
+              `*Target Date:* ${t.target_date}`,
+              `*Status:* ${t.status}`,
+              "",
+              "ഈ വർക്ക് സംബന്ധിച്ച നിലവിലെ വിവരം ദയവായി അപ്‌ഡേറ്റ് ചെയ്യുമല്ലോ."
+            ].filter(line => line !== null && line !== undefined);
 
-            waBtn = `<a href="https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1 font-semibold text-xs shadow-sm">💬 WhatsApp ${t.assigned_to}</a>`;
+            const finalMsg = encodeURIComponent(msgLines.join("\n"));
+            waBtn = `<a href="https://api.whatsapp.com/send?phone=${cleanPhone}&text=${finalMsg}" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1 font-semibold text-xs shadow-sm">💬 WhatsApp ${t.assigned_to}</a>`;
           } else {
             waBtn = `<button onclick="openModal('contactsModal')" class="px-2.5 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-300">⚠️ Add Phone (${t.assigned_to})</button>`;
           }
         } else {
           if (sender && sender.phone) {
             const cleanPhone = sender.phone.replace(/[^0-9]/g, '');
-            let msg = `Assalamu Alaikum,\nTo: *${t.assigned_by}*${senderHead}\n\n`;
-            msg += `Re: *${t.title}*\n`;
-            if (t.details) msg += `Details: ${t.details}\n`;
-            msg += `Target Date: ${t.target_date}\n\n`;
-            msg += `ഈ വർക്ക് പൂർത്തിയായിട്ടുണ്ട് / അപ്‌ഡേറ്റ് അറിയിക്കുന്നു. ദയവായി പരിശോധിക്കുക.`;
+            
+            const msgLines = [
+              "Assalamu Alaikum,",
+              `To: *${t.assigned_by}*${senderHead}`,
+              "",
+              `*Re:* ${t.title}`,
+              t.details ? `*Details:* ${t.details}` : "",
+              `*Target Date:* ${t.target_date}`,
+              "",
+              "ഈ വർക്ക് പൂർത്തിയായിട്ടുണ്ട് / അപ്‌ഡേറ്റ് അറിയിക്കുന്നു. ദയവായി പരിശോധിക്കുക."
+            ].filter(line => line !== null && line !== undefined);
 
-            waBtn = `<a href="https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1 font-semibold text-xs shadow-sm">💬 Reply to ${t.assigned_by}</a>`;
+            const finalMsg = encodeURIComponent(msgLines.join("\n"));
+            waBtn = `<a href="https://api.whatsapp.com/send?phone=${cleanPhone}&text=${finalMsg}" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1 font-semibold text-xs shadow-sm">💬 Reply to ${t.assigned_by}</a>`;
           } else {
             waBtn = `<button onclick="openModal('contactsModal')" class="px-2.5 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-300">⚠️ Add Phone (${t.assigned_by})</button>`;
           }
