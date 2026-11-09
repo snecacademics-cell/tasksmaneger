@@ -2,12 +2,11 @@
 <html lang="ml">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Office Task Manager Pro</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    /* മൊബൈൽ ഫോൺ ടച്ച് എളുപ്പമാക്കാനും ടെക്സ്റ്റ് തെളിഞ്ഞു കാണാനും */
     body { -webkit-tap-highlight-color: transparent; }
   </style>
 </head>
@@ -33,74 +32,112 @@
     </div>
   </div>
 
-  <!-- 2. DASHBOARD SECTION -->
-  <div id="dashboardSection" class="hidden max-w-2xl mx-auto p-3 sm:p-5">
+  <!-- 2. DASHBOARD SECTION (Responsive: Mobile-Compact, Desktop-Full Width) -->
+  <div id="dashboardSection" class="hidden w-full max-w-7xl mx-auto p-3 sm:p-6 lg:p-8">
     
-    <!-- Compact Top Bar -->
-    <header class="flex justify-between items-center bg-white px-4 py-3 rounded-xl shadow-sm mb-3 border border-slate-200">
+    <!-- Top Header Bar -->
+    <header class="flex justify-between items-center bg-white px-4 py-3 sm:px-6 sm:py-4 rounded-2xl shadow-sm mb-4 border border-slate-200">
       <div class="flex flex-col">
-        <span class="text-[10px] uppercase font-bold text-slate-400 leading-tight">Logged In</span>
-        <h1 id="userDisplay" class="text-base font-bold text-blue-700 leading-tight"></h1>
+        <span class="text-[10px] sm:text-xs uppercase font-bold text-slate-400 leading-tight">Logged In Department</span>
+        <h1 id="userDisplay" class="text-base sm:text-xl font-bold text-blue-700 leading-tight"></h1>
       </div>
-      <div class="flex items-center gap-1.5">
-        <button onclick="openModal('contactsModal')" class="px-2.5 py-1.5 text-xs bg-slate-100 active:bg-slate-200 text-slate-700 font-medium rounded-lg border flex items-center gap-1">
-          👥 Numbers
+      <div class="flex items-center gap-2">
+        <button onclick="openModal('contactsModal')" class="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl border flex items-center gap-1.5 transition">
+          👥 Numbers / Heads
         </button>
-        <button onclick="handleLogout()" class="px-2.5 py-1.5 text-xs bg-red-50 active:bg-red-100 text-red-600 font-medium rounded-lg">
+        <button onclick="handleLogout()" class="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-red-50 hover:bg-red-100 text-red-600 font-semibold rounded-xl transition">
           Logout
         </button>
       </div>
     </header>
 
     <!-- Admin Filter Box -->
-    <div id="adminFilterBox" class="hidden mb-3 bg-blue-50 px-3 py-2 rounded-xl border border-blue-200 flex items-center justify-between text-xs">
-      <span class="font-semibold text-blue-900">Filter:</span>
-      <select id="adminDeptFilter" onchange="loadTasks()" class="p-1.5 border rounded-lg bg-white text-xs w-48">
+    <div id="adminFilterBox" class="hidden mb-4 bg-blue-50 px-4 py-3 rounded-2xl border border-blue-200 flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
+      <span class="font-bold text-blue-900">Filter Department Tasks:</span>
+      <select id="adminDeptFilter" onchange="loadTasks()" class="p-2 border rounded-xl bg-white text-xs sm:text-sm font-medium w-full sm:w-64 focus:ring-2 focus:ring-blue-500 outline-none">
         <option value="All">All Departments</option>
       </select>
     </div>
 
-    <!-- Quick Action Bar -->
-    <div class="flex items-center gap-2 mb-3">
-      <!-- Tabs (Scrollable on small screens) -->
-      <div class="flex bg-slate-200 p-0.5 rounded-xl flex-1 overflow-x-auto text-xs">
-        <button onclick="setFilter('pending')" id="tab-pending" class="flex-1 py-1.5 px-3 rounded-lg font-semibold bg-white text-blue-700 shadow-sm whitespace-nowrap">Upcoming</button>
-        <button onclick="setFilter('sent')" id="tab-sent" class="flex-1 py-1.5 px-3 rounded-lg font-medium text-slate-600 whitespace-nowrap">📤 Sent</button>
-        <button onclick="setFilter('completed')" id="tab-completed" class="flex-1 py-1.5 px-3 rounded-lg font-medium text-slate-600 whitespace-nowrap">✅ Done</button>
+    <!-- Controls & Tab Nav -->
+    <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
+      <div class="flex bg-slate-200 p-1 rounded-2xl overflow-x-auto text-xs sm:text-sm font-semibold max-w-md">
+        <button onclick="setFilter('pending')" id="tab-pending" class="flex-1 py-2 px-4 rounded-xl bg-white text-blue-700 shadow-sm whitespace-nowrap transition">Upcoming</button>
+        <button onclick="setFilter('sent')" id="tab-sent" class="flex-1 py-2 px-4 rounded-xl text-slate-600 whitespace-nowrap transition">📤 Sent</button>
+        <button onclick="setFilter('completed')" id="tab-completed" class="flex-1 py-2 px-4 rounded-xl text-slate-600 whitespace-nowrap transition">✅ History</button>
       </div>
       
-      <!-- New Task Button -->
-      <button onclick="openModal('addTaskModal')" class="bg-emerald-600 active:bg-emerald-700 text-white font-semibold px-3 py-2 rounded-xl text-xs shadow-sm flex items-center gap-1 whitespace-nowrap">
-        + Assign
+      <button onclick="openModal('addTaskModal')" class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold px-5 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 transition">
+        <span>+</span> Assign New Task
       </button>
     </div>
 
-    <!-- Tasks List Container -->
-    <div id="taskContainer" class="space-y-3 pb-8">
-      <p class="text-center text-slate-400 py-10 text-xs">Loading tasks...</p>
+    <!-- Task List Grid (Single column on mobile, spacious full width on desktop) -->
+    <div id="taskContainer" class="space-y-3 sm:space-y-4 pb-12">
+      <p class="text-center text-slate-400 py-12 text-sm">Loading tasks...</p>
     </div>
   </div>
 
   <!-- ADD TASK MODAL -->
   <div id="addTaskModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
-    <div class="bg-white rounded-t-2xl sm:rounded-2xl p-5 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
-      <h3 class="text-base font-bold mb-3 text-slate-800">Assign New Task</h3>
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 w-full max-w-lg shadow-2xl max-h-[92vh] overflow-y-auto">
+      <h3 class="text-base sm:text-lg font-bold mb-3 text-slate-800">Assign / Add Task</h3>
       <form id="addTaskForm" onsubmit="handleAddTask(event)">
-        <label class="block text-xs font-semibold text-slate-600 mb-1">Assign To</label>
-        <select id="targetDept" required class="w-full p-2 border rounded-xl mb-2.5 text-xs bg-slate-50"></select>
+        
+        <!-- Assignment Type Selector (3 Options: Department, External, Self) -->
+        <label class="block text-xs font-semibold text-slate-600 mb-1.5">Who is this for?</label>
+        <div class="grid grid-cols-3 gap-2 mb-3 text-xs">
+          <label class="flex items-center justify-center gap-1.5 cursor-pointer bg-slate-50 border p-2 rounded-xl text-center font-medium has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50 has-[:checked]:text-blue-700">
+            <input type="radio" name="assigneeType" value="department" checked onchange="toggleAssignType('add', 'dept')" class="hidden">
+            <span>Department</span>
+          </label>
+          <label class="flex items-center justify-center gap-1.5 cursor-pointer bg-slate-50 border p-2 rounded-xl text-center font-medium has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50 has-[:checked]:text-blue-700">
+            <input type="radio" name="assigneeType" value="external" onchange="toggleAssignType('add', 'external')" class="hidden">
+            <span>Teacher/Person</span>
+          </label>
+          <label class="flex items-center justify-center gap-1.5 cursor-pointer bg-slate-50 border p-2 rounded-xl text-center font-medium has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50 has-[:checked]:text-blue-700">
+            <input type="radio" name="assigneeType" value="self" onchange="toggleAssignType('add', 'self')" class="hidden">
+            <span>Self (Mine)</span>
+          </label>
+        </div>
+
+        <!-- 1. Dept Select Box -->
+        <div id="addDeptBox">
+          <label class="block text-[11px] text-slate-500 mb-1">Target Department</label>
+          <select id="targetDept" class="w-full p-2.5 border rounded-xl mb-3 text-xs sm:text-sm bg-slate-50"></select>
+        </div>
+
+        <!-- 2. External Teacher/Person Inputs with Mobile Contact Picker -->
+        <div id="addExternalBox" class="hidden mb-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+          <div class="flex justify-between items-center mb-1.5">
+            <label class="text-[11px] font-semibold text-slate-600">Person / Teacher Details</label>
+            <button type="button" onclick="pickContact('externalName', 'externalPhone')" class="text-[11px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 hover:bg-indigo-100">
+              📱 Pick from Contacts
+            </button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input type="text" id="externalName" placeholder="Name (e.g. Koya Faizy)" class="w-full p-2 border rounded-xl text-xs sm:text-sm bg-white">
+            <input type="text" id="externalPhone" placeholder="WhatsApp (91XXXXXXXXXX)" class="w-full p-2 border rounded-xl text-xs sm:text-sm bg-white">
+          </div>
+        </div>
+
+        <!-- 3. Self Note Indicator -->
+        <div id="addSelfBox" class="hidden mb-3 bg-emerald-50 text-emerald-800 p-2.5 rounded-xl border border-emerald-200 text-xs">
+          📌 This task will be assigned to <b>Yourself</b>. External reminders won't be triggered.
+        </div>
 
         <label class="block text-xs font-semibold text-slate-600 mb-1">Task Title (Main Heading)</label>
-        <input type="text" id="taskTitle" required placeholder="e.g. RISALA SUBMISSION" class="w-full p-2 border rounded-xl mb-2.5 text-xs bg-slate-50">
+        <input type="text" id="taskTitle" required placeholder="e.g. Question Paper Setting / Fee Collection" class="w-full p-2.5 border rounded-xl mb-3 text-xs sm:text-sm bg-slate-50">
 
-        <label class="block text-xs font-semibold text-slate-600 mb-1">Details / Reference</label>
-        <textarea id="taskDetails" rows="2" placeholder="e.g. Final submission date instructions..." class="w-full p-2 border rounded-xl mb-2.5 text-xs bg-slate-50"></textarea>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Details / Reference / Instructions</label>
+        <textarea id="taskDetails" rows="2" placeholder="Write references or sub-tasks here..." class="w-full p-2.5 border rounded-xl mb-3 text-xs sm:text-sm bg-slate-50"></textarea>
 
         <label class="block text-xs font-semibold text-slate-600 mb-1">Target Date</label>
-        <input type="date" id="targetDate" required class="w-full p-2 border rounded-xl mb-4 text-xs bg-slate-50">
+        <input type="date" id="targetDate" required class="w-full p-2.5 border rounded-xl mb-5 text-xs sm:text-sm bg-slate-50">
 
         <div class="flex justify-end gap-2">
-          <button type="button" onclick="closeModal('addTaskModal')" class="px-3.5 py-1.5 border rounded-xl text-xs font-medium">Cancel</button>
-          <button type="submit" id="btnSaveTask" class="px-4 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold">Assign</button>
+          <button type="button" onclick="closeModal('addTaskModal')" class="px-4 py-2 border rounded-xl text-xs sm:text-sm font-semibold">Cancel</button>
+          <button type="submit" id="btnSaveTask" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow">Save Task</button>
         </div>
       </form>
     </div>
@@ -108,27 +145,43 @@
 
   <!-- EDIT TASK MODAL -->
   <div id="editTaskModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
-    <div class="bg-white rounded-t-2xl sm:rounded-2xl p-5 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
-      <h3 class="text-base font-bold mb-3 text-purple-700">Edit Task</h3>
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 w-full max-w-lg shadow-2xl max-h-[92vh] overflow-y-auto">
+      <h3 class="text-base sm:text-lg font-bold mb-3 text-purple-700">Edit Task</h3>
       <input type="hidden" id="editTaskId">
-      
-      <label class="block text-xs font-semibold text-slate-600 mb-1">Assign To</label>
-      <select id="editTargetDept" class="w-full p-2 border rounded-xl mb-2.5 text-xs bg-slate-50"></select>
+      <input type="hidden" id="editAssigneeType">
+
+      <div id="editDeptBox">
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Department</label>
+        <select id="editTargetDept" class="w-full p-2.5 border rounded-xl mb-3 text-xs sm:text-sm bg-slate-50"></select>
+      </div>
+
+      <div id="editExternalBox" class="hidden mb-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+        <div class="flex justify-between items-center mb-1.5">
+          <label class="text-[11px] font-semibold text-slate-600">Person / Teacher Details</label>
+          <button type="button" onclick="pickContact('editExternalName', 'editExternalPhone')" class="text-[11px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-lg font-bold">
+            📱 Pick Contact
+          </button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <input type="text" id="editExternalName" placeholder="Name" class="w-full p-2 border rounded-xl text-xs sm:text-sm bg-white">
+          <input type="text" id="editExternalPhone" placeholder="WhatsApp (91...)" class="w-full p-2 border rounded-xl text-xs sm:text-sm bg-white">
+        </div>
+      </div>
 
       <label class="block text-xs font-semibold text-slate-600 mb-1">Task Title</label>
-      <input type="text" id="editTaskTitle" class="w-full p-2 border rounded-xl mb-2.5 text-xs bg-slate-50">
+      <input type="text" id="editTaskTitle" class="w-full p-2.5 border rounded-xl mb-3 text-xs sm:text-sm bg-slate-50">
 
       <label class="block text-xs font-semibold text-slate-600 mb-1">Details / Reference</label>
-      <textarea id="editTaskDetails" rows="2" class="w-full p-2 border rounded-xl mb-2.5 text-xs bg-slate-50"></textarea>
+      <textarea id="editTaskDetails" rows="2" class="w-full p-2.5 border rounded-xl mb-3 text-xs sm:text-sm bg-slate-50"></textarea>
 
       <label class="block text-xs font-semibold text-slate-600 mb-1">Target Date</label>
-      <input type="date" id="editTargetDate" class="w-full p-2 border rounded-xl mb-4 text-xs bg-slate-50">
+      <input type="date" id="editTargetDate" class="w-full p-2.5 border rounded-xl mb-5 text-xs sm:text-sm bg-slate-50">
 
       <div class="flex justify-between items-center">
-        <button type="button" onclick="deleteTask()" class="px-2.5 py-1.5 text-xs bg-red-50 text-red-600 rounded-lg font-medium">🗑️ Delete</button>
+        <button type="button" onclick="deleteTask()" class="px-3 py-2 text-xs bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100">🗑️ Delete</button>
         <div class="flex gap-2">
-          <button type="button" onclick="closeModal('editTaskModal')" class="px-3.5 py-1.5 border rounded-xl text-xs font-medium">Cancel</button>
-          <button type="button" onclick="saveTaskEdit()" class="px-4 py-1.5 bg-purple-600 text-white rounded-xl text-xs font-semibold">Save</button>
+          <button type="button" onclick="closeModal('editTaskModal')" class="px-4 py-2 border rounded-xl text-xs sm:text-sm font-semibold">Cancel</button>
+          <button type="button" onclick="saveTaskEdit()" class="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow">Save</button>
         </div>
       </div>
     </div>
@@ -136,33 +189,33 @@
 
   <!-- ACTION MODAL -->
   <div id="actionModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-xl">
+    <div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl">
       <h3 id="actionModalTitle" class="text-base font-bold mb-3">Update Task</h3>
       <input type="hidden" id="actionTaskId">
       <input type="hidden" id="actionType">
 
-      <div id="postponeDateGroup" class="hidden mb-2.5">
+      <div id="postponeDateGroup" class="hidden mb-3">
         <label class="block text-xs font-semibold text-slate-600 mb-1">New Target Date</label>
-        <input type="date" id="actionNewDate" class="w-full p-2 border rounded-xl bg-slate-50 text-xs">
+        <input type="date" id="actionNewDate" class="w-full p-2 border rounded-xl bg-slate-50 text-xs sm:text-sm">
       </div>
 
       <label class="block text-xs font-semibold text-slate-600 mb-1">Remarks / Note</label>
-      <textarea id="actionReason" rows="2" placeholder="Write remarks here..." class="w-full p-2 border rounded-xl mb-3 text-xs bg-slate-50"></textarea>
+      <textarea id="actionReason" rows="2" placeholder="Write remarks here..." class="w-full p-2 border rounded-xl mb-4 text-xs sm:text-sm bg-slate-50"></textarea>
 
       <div class="flex justify-end gap-2">
-        <button type="button" onclick="closeModal('actionModal')" class="px-3 py-1.5 border rounded-xl text-xs">Cancel</button>
-        <button type="button" onclick="submitTaskAction()" class="px-3.5 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold">Update</button>
+        <button type="button" onclick="closeModal('actionModal')" class="px-3.5 py-1.5 border rounded-xl text-xs sm:text-sm font-semibold">Cancel</button>
+        <button type="button" onclick="submitTaskAction()" class="px-4 py-1.5 bg-blue-600 text-white rounded-xl text-xs sm:text-sm font-semibold shadow">Update</button>
       </div>
     </div>
   </div>
 
   <!-- CONTACTS MODAL -->
   <div id="contactsModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
-    <div class="bg-white rounded-t-2xl sm:rounded-2xl p-5 w-full max-w-md shadow-xl max-h-[85vh] flex flex-col">
-      <h3 class="text-base font-bold mb-1">WhatsApp Numbers</h3>
-      <p class="text-[11px] text-slate-500 mb-3">ഫോൺ നമ്പർ ഇവിടെ നേരിട്ട് നൽകി സേവ് ചെയ്യാം (91XXXXXXXXXX)</p>
-      <div id="contactsList" class="space-y-2 overflow-y-auto flex-1 pr-1"></div>
-      <button onclick="closeModal('contactsModal')" class="mt-3 w-full py-2 bg-slate-800 text-white rounded-xl text-xs font-semibold">Close</button>
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 w-full max-w-md shadow-2xl max-h-[85vh] flex flex-col">
+      <h3 class="text-base sm:text-lg font-bold mb-1">Department WhatsApp Directory</h3>
+      <p class="text-xs text-slate-500 mb-3">ഡിപ്പാർട്ട്‌മെന്റ് തലവൻമാരുടെ ഫോൺ നമ്പറുകൾ (91XXXXXXXXXX)</p>
+      <div id="contactsList" class="space-y-2.5 overflow-y-auto flex-1 pr-1"></div>
+      <button onclick="closeModal('contactsModal')" class="mt-4 w-full py-2.5 bg-slate-800 text-white rounded-xl text-xs sm:text-sm font-semibold">Close</button>
     </div>
   </div>
 
@@ -182,6 +235,51 @@
         return parts[2] + "-" + parts[1] + "-" + parts[0];
       }
       return dateStr;
+    }
+
+    // NATIVE MOBILE CONTACT PICKER API
+    async function pickContact(nameInputId, phoneInputId) {
+      if ('contacts' in navigator && 'ContactsManager' in window) {
+        try {
+          const props = ['name', 'tel'];
+          const contacts = await navigator.contacts.select(props, { multiple: false });
+          if (contacts && contacts.length > 0) {
+            const picked = contacts[0];
+            if (picked.name && picked.name.length > 0) {
+              document.getElementById(nameInputId).value = picked.name[0];
+            }
+            if (picked.tel && picked.tel.length > 0) {
+              let clean = picked.tel[0].replace(/[^0-9]/g, '');
+              if (clean.length === 10) clean = '91' + clean;
+              document.getElementById(phoneInputId).value = clean;
+            }
+          }
+        } catch (err) {
+          console.log("Contact pick cancelled or not allowed:", err);
+        }
+      } else {
+        alert("നിങ്ങളുടെ ഫോണിലെ കോൺടാക്റ്റ്സ് തുറക്കാൻ സാധ്യമല്ലെങ്കിൽ പേരും വാട്സാപ്പ് നമ്പറും നേരിട്ട് ടൈപ്പ് ചെയ്യാവുന്നതാണ്.");
+      }
+    }
+
+    function toggleAssignType(mode, type) {
+      if (mode === 'add') {
+        const deptBox = document.getElementById("addDeptBox");
+        const extBox = document.getElementById("addExternalBox");
+        const selfBox = document.getElementById("addSelfBox");
+
+        deptBox.classList.add("hidden");
+        extBox.classList.add("hidden");
+        selfBox.classList.add("hidden");
+
+        if (type === 'external') {
+          extBox.classList.remove("hidden");
+        } else if (type === 'self') {
+          selfBox.classList.remove("hidden");
+        } else {
+          deptBox.classList.remove("hidden");
+        }
+      }
     }
 
     window.onload = async function() {
@@ -220,16 +318,16 @@
     function renderContacts() {
       const list = document.getElementById("contactsList");
       list.innerHTML = departmentsData.map(function(d) {
-        return '<div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col gap-1.5 text-xs">' +
+        return '<div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col gap-2 text-xs">' +
           '<div class="flex justify-between items-center">' +
-            '<span class="font-bold text-slate-800">' + d.name + '</span>' +
-            (d.phone ? '<a href="https://wa.me/' + d.phone.replace(/[^0-9]/g,'') + '" target="_blank" class="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-bold">Chat</a>' : '') +
+            '<span class="font-bold text-slate-800 text-sm">' + d.name + '</span>' +
+            (d.phone ? '<a href="https://wa.me/' + d.phone.replace(/[^0-9]/g,'') + '" target="_blank" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold">Chat</a>' : '') +
           '</div>' +
-          '<div class="grid grid-cols-2 gap-1.5">' +
-            '<input type="text" id="head_' + d.id + '" placeholder="Head Name" value="' + (d.head_name || '') + '" class="p-1 border rounded bg-white text-xs">' +
-            '<input type="text" id="phone_' + d.id + '" placeholder="91XXXXXXXXXX" value="' + (d.phone || '') + '" class="p-1 border rounded bg-white text-xs">' +
+          '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">' +
+            '<input type="text" id="head_' + d.id + '" placeholder="Head Name" value="' + (d.head_name || '') + '" class="p-1.5 border rounded-lg bg-white text-xs">' +
+            '<input type="text" id="phone_' + d.id + '" placeholder="91XXXXXXXXXX" value="' + (d.phone || '') + '" class="p-1.5 border rounded-lg bg-white text-xs">' +
           '</div>' +
-          '<button onclick="saveContact(' + d.id + ')" class="self-end px-2.5 py-1 bg-blue-600 text-white rounded text-[11px] font-medium">Save</button>' +
+          '<button onclick="saveContact(' + d.id + ')" class="self-end px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-semibold">Save</button>' +
         '</div>';
       }).join('');
     }
@@ -290,9 +388,9 @@
       ['pending', 'sent', 'completed'].forEach(function(tab) {
         const btn = document.getElementById('tab-' + tab);
         if (tab === type) {
-          btn.className = "flex-1 py-1.5 px-3 rounded-lg font-semibold bg-white text-blue-700 shadow-sm whitespace-nowrap";
+          btn.className = "flex-1 py-2 px-4 rounded-xl bg-white text-blue-700 shadow-sm whitespace-nowrap transition";
         } else {
-          btn.className = "flex-1 py-1.5 px-3 rounded-lg font-medium text-slate-600 whitespace-nowrap";
+          btn.className = "flex-1 py-2 px-4 rounded-xl text-slate-600 whitespace-nowrap transition";
         }
       });
       loadTasks();
@@ -300,7 +398,7 @@
 
     async function loadTasks() {
       const container = document.getElementById("taskContainer");
-      container.innerHTML = '<p class="text-center text-slate-400 py-8 text-xs">Loading...</p>';
+      container.innerHTML = '<p class="text-center text-slate-400 py-12 text-sm">Loading...</p>';
 
       let query = db.from('tasks').select('*');
 
@@ -327,100 +425,121 @@
       const { data: tasks } = await query;
 
       if (!tasks || tasks.length === 0) {
-        container.innerHTML = '<p class="text-center text-slate-400 py-8 text-xs">No tasks found.</p>';
+        container.innerHTML = '<p class="text-center text-slate-400 py-12 text-sm text-slate-500">No tasks found in this view.</p>';
         return;
       }
 
       container.innerHTML = tasks.map(function(t) {
+        const isExternal = (t.assignee_type === 'external');
+        const isSelf = (t.assignee_type === 'self' || (t.assigned_to === t.assigned_by && t.assigned_to === currentUser));
         const receiver = departmentsData.find(function(d) { return d.name === t.assigned_to; });
         const sender = departmentsData.find(function(d) { return d.name === t.assigned_by; });
         const displayDate = formatDateDMY(t.target_date);
 
         let waBtn = '';
         const isSenderOrAdmin = (currentUser === t.assigned_by || currentUser === 'Admin');
-        const receiverHead = (receiver && receiver.head_name) ? ' (' + receiver.head_name + ')' : '';
+
+        // Target Name & Phone
+        let targetDisplayName = isExternal ? (t.external_name || 'Teacher/Person') : (isSelf ? 'Self' : t.assigned_to);
+        let targetPhone = isExternal ? (t.external_phone || '') : (receiver?.phone || '');
+        const receiverHead = (!isExternal && !isSelf && receiver?.head_name) ? ' (' + receiver.head_name + ')' : '';
         const senderHead = (sender && sender.head_name) ? ' (' + sender.head_name + ')' : '';
 
-        if (isSenderOrAdmin) {
-          if (receiver && receiver.phone) {
-            const cleanPhone = receiver.phone.replace(/[^0-9]/g, '');
-            const msgLines = [
-              "Assalamu Alaikum,",
-              "To: *" + t.assigned_to + "*" + receiverHead,
-              "",
-              "*Task:* " + t.title,
-              t.details ? "*Details:* " + t.details : "",
-              "*Target Date:* " + displayDate,
-              "*Status:* " + t.status,
-              "",
-              "ഈ വർക്ക് സംബന്ധിച്ച നിലവിലെ വിവരം ദയവായി അപ്‌ഡേറ്റ് ചെയ്യുമല്ലോ."
-            ].filter(function(line) { return line !== ""; });
+        // WhatsApp Button Logic
+        if (!isSelf) {
+          if (isSenderOrAdmin) {
+            if (targetPhone) {
+              const cleanPhone = targetPhone.replace(/[^0-9]/g, '');
+              const msgLines = [
+                "Assalamu Alaikum,",
+                "To: *" + targetDisplayName + "*" + receiverHead,
+                "",
+                "*Task:* " + t.title,
+                t.details ? "*Details:* " + t.details : "",
+                "*Target Date:* " + displayDate,
+                "*Status:* " + t.status,
+                "",
+                "ഈ വർക്ക് സംബന്ധിച്ച നിലവിലെ വിവരം ദയവായി അപ്‌ഡേറ്റ് ചെയ്യുമല്ലോ."
+              ].filter(function(line) { return line !== ""; });
 
-            const finalMsg = encodeURIComponent(msgLines.join("\n"));
-            waBtn = '<a href="https://api.whatsapp.com/send?phone=' + cleanPhone + '&text=' + finalMsg + '" target="_blank" class="w-full py-2 bg-emerald-600 active:bg-emerald-700 text-white rounded-lg flex items-center justify-center gap-1.5 font-semibold text-xs shadow-sm">💬 WhatsApp ' + t.assigned_to + '</a>';
+              const finalMsg = encodeURIComponent(msgLines.join("\n"));
+              waBtn = '<a href="https://api.whatsapp.com/send?phone=' + cleanPhone + '&text=' + finalMsg + '" target="_blank" class="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl flex items-center justify-center gap-1.5 font-bold text-xs sm:text-sm shadow-sm transition">💬 WhatsApp ' + targetDisplayName + '</a>';
+            } else {
+              waBtn = '<button onclick="openEditModal(' + t.id + ', \'' + encodeURIComponent(t.title) + '\', \'' + encodeURIComponent(t.details || '') + '\', \'' + t.target_date + '\', \'' + t.assigned_to + '\', \'' + (t.assignee_type || 'department') + '\', \'' + encodeURIComponent(t.external_name || '') + '\', \'' + (t.external_phone || '') + '\')" class="w-full sm:w-auto px-3 py-1.5 bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold">⚠️ Add Phone (' + targetDisplayName + ')</button>';
+            }
           } else {
-            waBtn = '<button onclick="openModal(\'contactsModal\')" class="w-full py-1.5 bg-slate-200 active:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold">⚠️ Add Phone (' + t.assigned_to + ')</button>';
-          }
-        } else {
-          if (sender && sender.phone) {
-            const cleanPhone = sender.phone.replace(/[^0-9]/g, '');
-            const msgLines = [
-              "Assalamu Alaikum,",
-              "To: *" + t.assigned_by + "*" + senderHead,
-              "",
-              "*Re:* " + t.title,
-              t.details ? "*Details:* " + t.details : "",
-              "*Target Date:* " + displayDate,
-              "",
-              "ഈ വർക്ക് പൂർത്തിയായിട്ടുണ്ട് / അപ്‌ഡേറ്റ് അറിയിക്കുന്നു. ദയവായി പരിശോധിക്കുക."
-            ].filter(function(line) { return line !== ""; });
+            if (sender && sender.phone) {
+              const cleanPhone = sender.phone.replace(/[^0-9]/g, '');
+              const msgLines = [
+                "Assalamu Alaikum,",
+                "To: *" + t.assigned_by + "*" + senderHead,
+                "",
+                "*Re:* " + t.title,
+                t.details ? "*Details:* " + t.details : "",
+                "*Target Date:* " + displayDate,
+                "",
+                "ഈ വർക്ക് പൂർത്തിയായിട്ടുണ്ട് / അപ്‌ഡേറ്റ് അറിയിക്കുന്നു. ദയവായി പരിശോധിക്കുക."
+              ].filter(function(line) { return line !== ""; });
 
-            const finalMsg = encodeURIComponent(msgLines.join("\n"));
-            waBtn = '<a href="https://api.whatsapp.com/send?phone=' + cleanPhone + '&text=' + finalMsg + '" target="_blank" class="w-full py-2 bg-emerald-600 active:bg-emerald-700 text-white rounded-lg flex items-center justify-center gap-1.5 font-semibold text-xs shadow-sm">💬 Reply to ' + t.assigned_by + '</a>';
-          } else {
-            waBtn = '<button onclick="openModal(\'contactsModal\')" class="w-full py-1.5 bg-slate-200 active:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold">⚠️ Add Phone (' + t.assigned_by + ')</button>';
+              const finalMsg = encodeURIComponent(msgLines.join("\n"));
+              waBtn = '<a href="https://api.whatsapp.com/send?phone=' + cleanPhone + '&text=' + finalMsg + '" target="_blank" class="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl flex items-center justify-center gap-1.5 font-bold text-xs sm:text-sm shadow-sm transition">💬 Reply to ' + t.assigned_by + '</a>';
+            } else {
+              waBtn = '<button onclick="openModal(\'contactsModal\')" class="w-full sm:w-auto px-3 py-1.5 bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold">⚠️ Add Phone (' + t.assigned_by + ')</button>';
+            }
           }
         }
 
-        const detailsHtml = t.details ? '<p class="text-xs text-slate-600 mt-1 whitespace-pre-line leading-relaxed">' + t.details + '</p>' : '';
-        const remarksHtml = t.remarks ? '<div class="bg-amber-50 text-amber-900 border border-amber-200 p-2 rounded-lg text-[11px] whitespace-pre-line my-2">📝 ' + t.remarks + '</div>' : '';
+        const detailsHtml = t.details ? '<p class="text-xs sm:text-sm text-slate-600 mt-1 whitespace-pre-line leading-relaxed">' + t.details + '</p>' : '';
+        const remarksHtml = t.remarks ? '<div class="bg-amber-50 text-amber-900 border border-amber-200 p-2.5 rounded-xl text-xs whitespace-pre-line my-2.5">📝 ' + t.remarks + '</div>' : '';
         const statusBadge = (t.status === 'Completed') 
-          ? '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Completed</span>'
-          : '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Pending</span>';
+          ? '<span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Completed</span>'
+          : '<span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700">Pending</span>';
 
-        // കോംപാക്റ്റ് 4 ബട്ടണുകൾ ഒരൊറ്റ വരിയിൽ ഗ്രിഡ് ആയി
-        const actionGrid = (t.status !== 'Completed') ? 
-          '<div class="grid grid-cols-4 gap-1.5 mb-2">' +
-            '<button onclick="openActionModal(' + t.id + ', \'complete\')" class="py-1.5 bg-emerald-600 active:bg-emerald-700 text-white rounded-lg font-medium text-center text-[11px]">Done</button>' +
-            '<button onclick="openActionModal(' + t.id + ', \'postpone\')" class="py-1.5 bg-amber-500 active:bg-amber-600 text-white rounded-lg font-medium text-center text-[11px]">Postpone</button>' +
-            '<button onclick="openActionModal(' + t.id + ', \'note\')" class="py-1.5 bg-slate-600 active:bg-slate-700 text-white rounded-lg font-medium text-center text-[11px]">Note</button>' +
-            '<button onclick="openEditModal(' + t.id + ', \'' + encodeURIComponent(t.title) + '\', \'' + encodeURIComponent(t.details || '') + '\', \'' + t.target_date + '\', \'' + t.assigned_to + '\')" class="py-1.5 bg-purple-600 active:bg-purple-700 text-white rounded-lg font-medium text-center text-[11px]">Edit</button>' +
+        let typeBadge = '';
+        if (isSelf) {
+          typeBadge = '<span class="bg-emerald-50 text-emerald-700 text-[10px] sm:text-xs px-2 py-0.5 rounded-lg font-bold border border-emerald-200">Self Task</span>';
+        } else if (isExternal) {
+          typeBadge = '<span class="bg-indigo-50 text-indigo-700 text-[10px] sm:text-xs px-2 py-0.5 rounded-lg font-bold border border-indigo-200">Teacher/External</span>';
+        }
+
+        const editArgs = t.id + ', \'' + encodeURIComponent(t.title) + '\', \'' + encodeURIComponent(t.details || '') + '\', \'' + t.target_date + '\', \'' + t.assigned_to + '\', \'' + (t.assignee_type || 'department') + '\', \'' + encodeURIComponent(t.external_name || '') + '\', \'' + (t.external_phone || '') + '\'';
+
+        const actionButtons = (t.status !== 'Completed') ? 
+          '<div class="grid grid-cols-4 sm:flex gap-1.5 sm:gap-2 flex-1">' +
+            '<button onclick="openActionModal(' + t.id + ', \'complete\')" class="py-1.5 sm:py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-center text-xs sm:text-sm transition">Done</button>' +
+            '<button onclick="openActionModal(' + t.id + ', \'postpone\')" class="py-1.5 sm:py-2 px-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold text-center text-xs sm:text-sm transition">Postpone</button>' +
+            '<button onclick="openActionModal(' + t.id + ', \'note\')" class="py-1.5 sm:py-2 px-3 bg-slate-600 hover:bg-slate-700 text-white rounded-xl font-semibold text-center text-xs sm:text-sm transition">Note</button>' +
+            '<button onclick="openEditModal(' + editArgs + ')" class="py-1.5 sm:py-2 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold text-center text-xs sm:text-sm transition">Edit</button>' +
           '</div>' : 
-          '<div class="flex justify-end mb-2">' +
-            '<button onclick="openEditModal(' + t.id + ', \'' + encodeURIComponent(t.title) + '\', \'' + encodeURIComponent(t.details || '') + '\', \'' + t.target_date + '\', \'' + t.assigned_to + '\')" class="px-3 py-1 bg-purple-600 text-white rounded-lg font-medium text-xs">Edit</button>' +
+          '<div class="flex justify-end flex-1">' +
+            '<button onclick="openEditModal(' + editArgs + ')" class="px-4 py-1.5 bg-purple-600 text-white rounded-xl font-semibold text-xs sm:text-sm">Edit</button>' +
           '</div>';
 
-        return '<div class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200">' +
-          '<div class="flex justify-between items-start gap-2 mb-1">' +
-            '<h4 class="font-bold text-slate-900 text-sm leading-snug flex-1">' + t.title + '</h4>' +
+        return '<div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition">' +
+          '<div class="flex justify-between items-start gap-2 mb-1.5">' +
+            '<div class="flex-1">' +
+              '<div class="flex items-center gap-2 mb-1">' +
+                '<h4 class="font-bold text-slate-900 text-sm sm:text-base leading-snug">' + t.title + '</h4>' +
+                typeBadge +
+              '</div>' +
+              detailsHtml +
+            '</div>' +
             statusBadge +
           '</div>' +
 
-          detailsHtml +
-
-          '<div class="text-[11px] text-slate-500 my-2 flex flex-wrap gap-x-2 gap-y-1 items-center bg-slate-50 p-1.5 rounded-lg border border-slate-100">' +
-            '<span>📅 <b class="text-slate-700">' + displayDate + '</b></span>' +
+          '<div class="text-xs sm:text-sm text-slate-500 my-2.5 flex flex-wrap gap-x-3 gap-y-1 items-center bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">' +
+            '<span>📅 <b class="text-slate-800 font-semibold">' + displayDate + '</b></span>' +
             '<span>•</span>' +
-            '<span>To: <b class="text-slate-700">' + t.assigned_to + receiverHead + '</b></span>' +
+            '<span>To: <b class="text-slate-800 font-semibold">' + targetDisplayName + receiverHead + '</b></span>' +
             '<span>•</span>' +
             '<span class="text-purple-700 font-medium">From: ' + t.assigned_by + '</span>' +
           '</div>' +
 
           remarksHtml +
           
-          '<div class="pt-2 border-t border-slate-100">' +
-            actionGrid +
-            waBtn +
+          '<div class="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">' +
+            actionButtons +
+            (waBtn ? '<div class="w-full sm:w-auto mt-1 sm:mt-0">' + waBtn + '</div>' : '') +
           '</div>' +
         '</div>';
       }).join('');
@@ -432,10 +551,29 @@
       const btn = document.getElementById("btnSaveTask");
       btn.disabled = true;
 
-      const targetDept = document.getElementById("targetDept").value;
+      const assignType = document.querySelector('input[name="assigneeType"]:checked').value;
       const title = document.getElementById("taskTitle").value;
       const details = document.getElementById("taskDetails").value;
       const date = document.getElementById("targetDate").value;
+
+      let targetDept = currentUser;
+      let extName = '';
+      let extPhone = '';
+
+      if (assignType === 'external') {
+        extName = document.getElementById("externalName").value.trim();
+        extPhone = document.getElementById("externalPhone").value.trim();
+        targetDept = 'External';
+        if (!extName) {
+          alert("Please enter the teacher / person name");
+          btn.disabled = false;
+          return;
+        }
+      } else if (assignType === 'self') {
+        targetDept = currentUser;
+      } else {
+        targetDept = document.getElementById("targetDept").value;
+      }
 
       await db.from('tasks').insert([{
         title: title,
@@ -443,39 +581,68 @@
         target_date: date,
         assigned_to: targetDept,
         assigned_by: currentUser,
-        status: 'Pending'
+        status: 'Pending',
+        assignee_type: assignType,
+        external_name: extName,
+        external_phone: extPhone
       }]);
 
       btn.disabled = false;
       document.getElementById("addTaskForm").reset();
+      toggleAssignType('add', 'dept');
       closeModal('addTaskModal');
       loadTasks();
     }
 
     // EDIT TASK
-    function openEditModal(id, titleEncoded, detailsEncoded, date, assignedTo) {
+    function openEditModal(id, titleEncoded, detailsEncoded, date, assignedTo, assignType, extNameEncoded, extPhone) {
       document.getElementById("editTaskId").value = id;
+      document.getElementById("editAssigneeType").value = assignType;
       document.getElementById("editTaskTitle").value = decodeURIComponent(titleEncoded);
       document.getElementById("editTaskDetails").value = decodeURIComponent(detailsEncoded);
       document.getElementById("editTargetDate").value = date;
-      document.getElementById("editTargetDept").value = assignedTo;
+
+      const deptBox = document.getElementById("editDeptBox");
+      const extBox = document.getElementById("editExternalBox");
+
+      if (assignType === 'external') {
+        deptBox.classList.add("hidden");
+        extBox.classList.remove("hidden");
+        document.getElementById("editExternalName").value = decodeURIComponent(extNameEncoded);
+        document.getElementById("editExternalPhone").value = extPhone || '';
+      } else if (assignType === 'self') {
+        deptBox.classList.add("hidden");
+        extBox.classList.add("hidden");
+      } else {
+        deptBox.classList.remove("hidden");
+        extBox.classList.add("hidden");
+        document.getElementById("editTargetDept").value = assignedTo;
+      }
+
       openModal('editTaskModal');
     }
 
     async function saveTaskEdit() {
       const id = document.getElementById("editTaskId").value;
+      const assignType = document.getElementById("editAssigneeType").value;
       const title = document.getElementById("editTaskTitle").value;
       const details = document.getElementById("editTaskDetails").value;
       const date = document.getElementById("editTargetDate").value;
-      const dept = document.getElementById("editTargetDept").value;
 
-      await db.from('tasks').update({
+      let updateData = {
         title: title,
         details: details,
-        target_date: date,
-        assigned_to: dept
-      }).eq('id', id);
+        target_date: date
+      };
 
+      if (assignType === 'external') {
+        updateData.external_name = document.getElementById("editExternalName").value.trim();
+        updateData.external_phone = document.getElementById("editExternalPhone").value.trim();
+      } else if (assignType === 'department') {
+        updateData.assigned_to = document.getElementById("editTargetDept").value;
+      }
+
+      await db.from('tasks').update(updateData).eq('id', id);
       closeModal('editTaskModal');
       loadTasks();
     }
