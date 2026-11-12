@@ -66,7 +66,7 @@
   <div id="dashboardSection" class="hidden w-full max-w-7xl mx-auto p-3 sm:p-6 lg:p-8">
     
     <!-- Top Header Bar -->
-    <header class="flex justify-between items-center bg-white px-4 py-3 sm:px-6 sm:py-4 rounded-2xl shadow-sm mb-4 border border-slate-200">
+    <header class="flex flex-wrap justify-between items-center gap-2 bg-white px-4 py-3 sm:px-6 sm:py-4 rounded-2xl shadow-sm mb-4 border border-slate-200">
       <div class="flex items-center gap-3">
         <img src="./logo.png" alt="Tasks Logo" class="w-9 h-9 sm:w-11 sm:h-11 object-contain rounded-xl">
         <div class="flex flex-col">
@@ -74,21 +74,51 @@
           <h1 id="userDisplay" class="text-base sm:text-xl font-bold text-blue-700 leading-tight"></h1>
         </div>
       </div>
-      <div class="flex items-center gap-2">
-        <button onclick="openReportModal()" class="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-xl border border-emerald-200 flex items-center gap-1.5 transition">
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <button onclick="openReportModal()" class="px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-xl border border-emerald-200 flex items-center gap-1 transition">
           📄 Report
         </button>
-        <button onclick="openDirectoryModal()" class="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl border border-indigo-200 flex items-center gap-1.5 transition">
+        <button onclick="openDirectoryModal()" class="px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl border border-indigo-200 flex items-center gap-1 transition">
           📖 Directory
         </button>
-        <button onclick="openModal('contactsModal')" class="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl border flex items-center gap-1.5 transition">
-          👥 Dept Heads
+        <button onclick="openModal('contactsModal')" class="px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl border flex items-center gap-1 transition">
+          👥 Heads
         </button>
-        <button onclick="handleLogout()" class="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-red-50 hover:bg-red-100 text-red-600 font-semibold rounded-xl transition">
+        <button onclick="handleLogout()" class="px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-red-50 hover:bg-red-100 text-red-600 font-semibold rounded-xl transition">
           Logout
         </button>
       </div>
     </header>
+
+    <!-- SMART ALERT SUMMARY BAR (ഒറ്റ നോട്ടത്തിൽ സ്ഥിതി അറിയാൻ) -->
+    <div id="summaryAlertBar" class="grid grid-cols-3 gap-2 sm:gap-4 mb-4">
+      <!-- Overdue Box -->
+      <div onclick="jumpToPriorityTasks()" class="cursor-pointer bg-red-50 hover:bg-red-100 border border-red-200 p-2.5 sm:p-3.5 rounded-2xl flex items-center justify-between transition shadow-xs">
+        <div>
+          <span class="text-[10px] sm:text-xs font-bold uppercase text-red-600 block">⚠️ Overdue</span>
+          <span class="text-[10px] sm:text-xs text-red-500 hidden sm:inline">തീയതി കഴിഞ്ഞവ</span>
+        </div>
+        <span id="statOverdue" class="text-lg sm:text-2xl font-extrabold text-red-700">0</span>
+      </div>
+
+      <!-- Due Today Box -->
+      <div onclick="jumpToPriorityTasks()" class="cursor-pointer bg-amber-50 hover:bg-amber-100 border border-amber-200 p-2.5 sm:p-3.5 rounded-2xl flex items-center justify-between transition shadow-xs">
+        <div>
+          <span class="text-[10px] sm:text-xs font-bold uppercase text-amber-700 block">🔥 Due Today</span>
+          <span class="text-[10px] sm:text-xs text-amber-600 hidden sm:inline">ഇന്ന് തീരേണ്ടവ</span>
+        </div>
+        <span id="statToday" class="text-lg sm:text-2xl font-extrabold text-amber-700">0</span>
+      </div>
+
+      <!-- Sent Pending Box -->
+      <div onclick="setFilter('sent')" class="cursor-pointer bg-purple-50 hover:bg-purple-100 border border-purple-200 p-2.5 sm:p-3.5 rounded-2xl flex items-center justify-between transition shadow-xs">
+        <div>
+          <span class="text-[10px] sm:text-xs font-bold uppercase text-purple-700 block">📤 Sent Pending</span>
+          <span class="text-[10px] sm:text-xs text-purple-600 hidden sm:inline">മറ്റുള്ളവരിൽ ബാക്കിയുള്ളവ</span>
+        </div>
+        <span id="statSentPending" class="text-lg sm:text-2xl font-extrabold text-purple-700">0</span>
+      </div>
+    </div>
 
     <!-- Admin Filter Box -->
     <div id="adminFilterBox" class="hidden mb-4 bg-blue-50 px-4 py-3 rounded-2xl border border-blue-200 flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
@@ -98,12 +128,21 @@
       </select>
     </div>
 
-    <!-- Controls & Tab Nav -->
+    <!-- Controls & Tab Nav with Counters -->
     <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
-      <div class="flex bg-slate-200 p-1 rounded-2xl overflow-x-auto text-xs sm:text-sm font-semibold max-w-md">
-        <button onclick="setFilter('pending')" id="tab-pending" class="flex-1 py-2 px-4 rounded-xl bg-white text-blue-700 shadow-sm whitespace-nowrap transition">Upcoming</button>
-        <button onclick="setFilter('sent')" id="tab-sent" class="flex-1 py-2 px-4 rounded-xl text-slate-600 whitespace-nowrap transition">📤 Sent</button>
-        <button onclick="setFilter('completed')" id="tab-completed" class="flex-1 py-2 px-4 rounded-xl text-slate-600 whitespace-nowrap transition">✅ History</button>
+      <div class="flex bg-slate-200 p-1 rounded-2xl overflow-x-auto text-xs sm:text-sm font-semibold max-w-lg">
+        <button onclick="setFilter('pending')" id="tab-pending" class="flex-1 py-2 px-3 sm:px-4 rounded-xl bg-white text-blue-700 shadow-sm whitespace-nowrap transition flex items-center justify-center gap-1.5">
+          <span>Upcoming</span>
+          <span id="badge-pending" class="px-1.5 py-0.2 text-[10px] rounded-full bg-blue-100 text-blue-800 font-bold">0</span>
+        </button>
+        <button onclick="setFilter('sent')" id="tab-sent" class="flex-1 py-2 px-3 sm:px-4 rounded-xl text-slate-600 whitespace-nowrap transition flex items-center justify-center gap-1.5">
+          <span>📤 Sent</span>
+          <span id="badge-sent" class="px-1.5 py-0.2 text-[10px] rounded-full bg-purple-100 text-purple-800 font-bold">0</span>
+          <span id="sentUrgentDot" class="hidden w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+        </button>
+        <button onclick="setFilter('completed')" id="tab-completed" class="flex-1 py-2 px-3 sm:px-4 rounded-xl text-slate-600 whitespace-nowrap transition flex items-center justify-center gap-1.5">
+          <span>✅ History</span>
+        </button>
       </div>
       
       <button onclick="openModal('addTaskModal')" class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold px-5 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 transition">
@@ -139,13 +178,11 @@
           </label>
         </div>
 
-        <!-- 1. Dept Select Box -->
         <div id="addDeptBox">
           <label class="block text-[11px] text-slate-500 mb-1">Target Department</label>
           <select id="targetDept" class="w-full p-2.5 border rounded-xl mb-3 text-xs sm:text-sm bg-slate-50"></select>
         </div>
 
-        <!-- 2. External Teacher/Person Inputs -->
         <div id="addExternalBox" class="hidden mb-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
           <div class="flex justify-between items-center mb-2">
             <label class="text-[11px] font-semibold text-slate-600">Person / Teacher Details</label>
@@ -164,7 +201,6 @@
           </div>
         </div>
 
-        <!-- 3. Self Note Indicator -->
         <div id="addSelfBox" class="hidden mb-3 bg-emerald-50 text-emerald-800 p-2.5 rounded-xl border border-emerald-200 text-xs">
           📌 This task is for <b>Yourself</b>. External notifications won't be sent.
         </div>
@@ -195,7 +231,7 @@
 
       <div id="editDeptBox">
         <label class="block text-xs font-semibold text-slate-600 mb-1">Department</label>
-        <select id="editTargetDept" class="w-full p-2 border rounded-xl mb-3 text-xs sm:text-sm bg-slate-50"></select>
+        <select id="editTargetDept" class="w-full p-2.5 border rounded-xl mb-3 text-xs sm:text-sm bg-slate-50"></select>
       </div>
 
       <div id="editExternalBox" class="hidden mb-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
@@ -350,7 +386,6 @@
         <button onclick="closeModal('reportModal')" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
       </div>
 
-      <!-- Filters Form -->
       <div class="no-print bg-slate-50 p-3.5 rounded-2xl border border-slate-200 mb-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
         <div>
           <label class="block font-semibold text-slate-600 mb-1">From Date</label>
@@ -384,7 +419,6 @@
         </div>
       </div>
 
-      <!-- Printable Area -->
       <div class="flex-1 overflow-y-auto border border-slate-200 rounded-2xl p-4 bg-white" id="printableReportArea">
         <div id="reportResultContent">
           <p class="text-center text-slate-400 py-12 text-xs sm:text-sm">തീയതികൾ തിരഞ്ഞെടുത്ത ശേഷം 'Get Report' ക്ലിക്ക് ചെയ്യുക.</p>
@@ -416,6 +450,44 @@
         return parts[2] + "-" + parts[1] + "-" + parts[0];
       }
       return dateStr;
+    }
+
+    // തീയതി താരതമ്യം ചെയ്ത് urgency സ്റ്റാറ്റസ് കണ്ടുപിടിക്കാൻ
+    function getUrgencyInfo(dateStr, status) {
+      if (status === 'Completed' || !dateStr) {
+        return { level: 'normal', badge: '', cardBorder: 'border-slate-200' };
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const parts = dateStr.split("-");
+      const target = new Date(parts[0], parts[1] - 1, parts[2]);
+      target.setHours(0, 0, 0, 0);
+
+      const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 0) {
+        return {
+          level: 'overdue',
+          badge: '<span class="text-[10px] sm:text-xs font-extrabold px-2 py-0.5 rounded-lg bg-red-600 text-white animate-pulse">⚠️ OVERDUE (' + Math.abs(diffDays) + 'd late)</span>',
+          cardBorder: 'border-l-4 border-l-red-600 border-red-200 bg-red-50/10'
+        };
+      } else if (diffDays === 0) {
+        return {
+          level: 'today',
+          badge: '<span class="text-[10px] sm:text-xs font-extrabold px-2 py-0.5 rounded-lg bg-amber-500 text-white">🔥 DUE TODAY</span>',
+          cardBorder: 'border-l-4 border-l-amber-500 border-amber-200 bg-amber-50/10'
+        };
+      } else if (diffDays <= 2) {
+        return {
+          level: 'soon',
+          badge: '<span class="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-lg bg-yellow-100 text-yellow-800 border border-yellow-300">⏳ Due in ' + diffDays + 'd</span>',
+          cardBorder: 'border-l-4 border-l-yellow-400 border-slate-200'
+        };
+      }
+
+      return { level: 'normal', badge: '', cardBorder: 'border-slate-200' };
     }
 
     async function pickContact(nameInputId, phoneInputId) {
@@ -578,17 +650,78 @@
       ['pending', 'sent', 'completed'].forEach(function(tab) {
         const btn = document.getElementById('tab-' + tab);
         if (tab === type) {
-          btn.className = "flex-1 py-2 px-4 rounded-xl bg-white text-blue-700 shadow-sm whitespace-nowrap transition";
+          btn.className = "flex-1 py-2 px-3 sm:px-4 rounded-xl bg-white text-blue-700 shadow-sm whitespace-nowrap transition flex items-center justify-center gap-1.5";
         } else {
-          btn.className = "flex-1 py-2 px-4 rounded-xl text-slate-600 whitespace-nowrap transition";
+          btn.className = "flex-1 py-2 px-3 sm:px-4 rounded-xl text-slate-600 whitespace-nowrap transition flex items-center justify-center gap-1.5";
         }
       });
       loadTasks();
     }
 
+    function jumpToPriorityTasks() {
+      // Overdue അല്ലെങ്കിൽ Due Today കൂടുതലുള്ളത് Sent ആണെങ്കിൽ അങ്ങോട്ട് മാറ്റുന്നു, അല്ലെങ്കിൽ Upcoming
+      setFilter('sent');
+    }
+
+    // മുകളിലെ അലർട്ട് ബാറും കൗണ്ടറുകളും അപ്ഡേറ്റ് ചെയ്യാൻ
+    async function refreshSummaryCounters() {
+      let query = db.from('tasks').select('target_date, status, assigned_to, assigned_by, is_archived').neq('status', 'Completed');
+      const { data: activeTasks } = await query;
+
+      if (!activeTasks) return;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      let overdueCount = 0;
+      let todayCount = 0;
+      let myUpcomingCount = 0;
+      let mySentPendingCount = 0;
+      let sentHasUrgent = false;
+
+      activeTasks.forEach(t => {
+        const isMine = (currentUser === 'Admin') ? true : (t.assigned_to === currentUser);
+        const isSentByMe = (t.assigned_by === currentUser && !t.is_archived);
+
+        if (isMine) myUpcomingCount++;
+        if (isSentByMe) mySentPendingCount++;
+
+        if (isMine || isSentByMe) {
+          const parts = t.target_date.split("-");
+          const d = new Date(parts[0], parts[1] - 1, parts[2]);
+          d.setHours(0, 0, 0, 0);
+
+          if (d < today) {
+            overdueCount++;
+            if (isSentByMe) sentHasUrgent = true;
+          } else if (d.getTime() === today.getTime()) {
+            todayCount++;
+            if (isSentByMe) sentHasUrgent = true;
+          }
+        }
+      });
+
+      document.getElementById("statOverdue").innerText = overdueCount;
+      document.getElementById("statToday").innerText = todayCount;
+      document.getElementById("statSentPending").innerText = mySentPendingCount;
+
+      document.getElementById("badge-pending").innerText = myUpcomingCount;
+      document.getElementById("badge-sent").innerText = mySentPendingCount;
+
+      const urgentDot = document.getElementById("sentUrgentDot");
+      if (sentHasUrgent) {
+        urgentDot.classList.remove("hidden");
+      } else {
+        urgentDot.classList.add("hidden");
+      }
+    }
+
     async function loadTasks() {
       const container = document.getElementById("taskContainer");
       container.innerHTML = '<p class="text-center text-slate-400 py-12 text-sm">Loading...</p>';
+
+      // മുകളിലെ എണ്ണം അപ്ഡേറ്റ് ചെയ്യുന്നു
+      refreshSummaryCounters();
 
       let query = db.from('tasks').select('*');
 
@@ -635,6 +768,7 @@
         const receiver = departmentsData.find(function(d) { return d.name === t.assigned_to; });
         const sender = departmentsData.find(function(d) { return d.name === t.assigned_by; });
         const displayDate = formatDateDMY(t.target_date);
+        const urgency = getUrgencyInfo(t.target_date, t.status);
 
         let waBtn = '';
         const isSenderOrAdmin = (currentUser === t.assigned_by || currentUser === 'Admin');
@@ -643,9 +777,7 @@
         let targetDisplayName = isExternal ? (t.external_name || 'Teacher/Person') : (isSelf ? 'Self' : t.assigned_to);
         let targetPhone = isExternal ? (t.external_phone || '') : (receiver?.phone || '');
         const receiverHead = (!isExternal && !isSelf && receiver?.head_name) ? ' (' + receiver.head_name + ')' : '';
-        const senderHead = (sender && sender.head_name) ? ' (' + sender.head_name + ')' : '';
 
-        // WhatsApp Button
         if (!isSelf && t.status !== 'Completed') {
           if (isSenderOrAdmin) {
             if (targetPhone) {
@@ -704,12 +836,13 @@
           '</div>';
         }
 
-        return '<div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition">' +
+        return '<div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border ' + urgency.cardBorder + ' hover:shadow-md transition">' +
           '<div class="flex justify-between items-start gap-2 mb-1.5">' +
             '<div class="flex-1">' +
-              '<div class="flex items-center gap-2 mb-1">' +
+              '<div class="flex flex-wrap items-center gap-2 mb-1">' +
                 '<h4 class="font-bold text-slate-900 text-sm sm:text-base leading-snug">' + t.title + '</h4>' +
                 typeBadge +
+                urgency.badge +
               '</div>' +
               detailsHtml +
             '</div>' +
@@ -734,7 +867,6 @@
       }).join('');
     }
 
-    // ADD TASK + FIRST WHATSAPP INTIMATION
     async function handleAddTask(e) {
       e.preventDefault();
       const btn = document.getElementById("btnSaveTask");
@@ -818,7 +950,6 @@
       }
     }
 
-    // EDIT TASK
     function openEditModal(id, titleEncoded, detailsEncoded, date, assignedTo, assignType, extNameEncoded, extPhone, canDelete) {
       document.getElementById("editTaskId").value = id;
       document.getElementById("editAssigneeType").value = assignType;
@@ -887,7 +1018,6 @@
       }
     }
 
-    // ACTION MODAL
     function openActionModal(id, type) {
       document.getElementById("actionTaskId").value = id;
       document.getElementById("actionType").value = type;
@@ -959,7 +1089,6 @@
       }
     }
 
-    // ARCHIVE MODAL
     function openArchiveModal(id) {
       document.getElementById('archiveTargetId').value = id;
       openModal('archiveModal');
@@ -981,7 +1110,6 @@
       }
     }
 
-    // DIRECTORY MANAGEMENT
     function openDirectoryModal() {
       renderDirectoryTable(directoryData);
       openModal('directoryModal');
@@ -1069,7 +1197,6 @@
       }
     }
 
-    // WORK REPORT GENERATOR & PRINT
     function openReportModal() {
       const today = new Date();
       const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
