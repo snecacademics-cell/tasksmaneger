@@ -147,6 +147,7 @@
         </button>
         <button onclick="setFilter('completed')" id="tab-completed" class="flex-1 py-2 px-3 sm:px-4 rounded-xl text-slate-600 whitespace-nowrap transition flex items-center justify-center gap-1.5">
           <span>✅ History</span>
+          <span id="badge-completed" class="px-1.5 py-0.2 text-[10px] rounded-full bg-emerald-100 text-emerald-800 font-bold">0</span>
         </button>
       </div>
 
@@ -800,10 +801,9 @@
     }
 
     async function refreshSummaryCounters() {
-      let query = db.from('tasks').select('target_date, status, assigned_to, assigned_by, is_archived').neq('status', 'Completed');
-      const { data: activeTasks } = await query;
+      const { data: allTasks } = await db.from('tasks').select('target_date, status, assigned_to, assigned_by, is_archived');
 
-      if (!activeTasks) return;
+      if (!allTasks) return;
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -812,12 +812,27 @@
       let todayCount = 0;
       let myUpcomingCount = 0;
       let mySentPendingCount = 0;
+      let historyCount = 0;
       let sentHasUrgent = false;
 
-      activeTasks.forEach(t => {
+      allTasks.forEach(t => {
         const isMine = (currentUser === 'Admin') ? true : (t.assigned_to === currentUser);
         const isSentByMe = (t.assigned_by === currentUser && !t.is_archived);
 
+        // History (Completed) എണ്ണം കണക്കാക്കുന്നു
+        if (t.status === 'Completed') {
+          if (currentUser === 'Admin') {
+            const adminFilter = document.getElementById("adminDeptFilter") ? document.getElementById("adminDeptFilter").value : "All";
+            if (adminFilter === "All" || t.assigned_to === adminFilter) {
+              historyCount++;
+            }
+          } else if (t.assigned_to === currentUser || t.assigned_by === currentUser) {
+            historyCount++;
+          }
+          return;
+        }
+
+        // Pending (Active) ടാസ്കുകളുടെ എണ്ണം
         if (isMine) myUpcomingCount++;
         if (isSentByMe) mySentPendingCount++;
 
@@ -842,6 +857,7 @@
 
       document.getElementById("badge-pending").innerText = myUpcomingCount;
       document.getElementById("badge-sent").innerText = mySentPendingCount;
+      document.getElementById("badge-completed").innerText = historyCount;
 
       const urgentDot = document.getElementById("sentUrgentDot");
       if (sentHasUrgent) {
