@@ -97,7 +97,7 @@
     <!-- SMART ALERT SUMMARY BAR -->
     <div id="summaryAlertBar" class="grid grid-cols-3 gap-2 sm:gap-4 mb-4">
       <!-- Overdue Box -->
-      <div onclick="jumpToPriorityTasks()" class="cursor-pointer bg-red-50 hover:bg-red-100 border border-red-200 p-2.5 sm:p-3.5 rounded-2xl flex items-center justify-between transition shadow-xs">
+      <div id="card-overdue" onclick="setFilter('overdue')" class="cursor-pointer bg-red-50 hover:bg-red-100 border border-red-200 p-2.5 sm:p-3.5 rounded-2xl flex items-center justify-between transition shadow-xs">
         <div>
           <span class="text-[10px] sm:text-xs font-bold uppercase text-red-600 block">⚠️ Overdue</span>
           <span class="text-[10px] sm:text-xs text-red-500 hidden sm:inline">തീയതി കഴിഞ്ഞവ</span>
@@ -106,7 +106,7 @@
       </div>
 
       <!-- Due Today Box -->
-      <div onclick="jumpToPriorityTasks()" class="cursor-pointer bg-amber-50 hover:bg-amber-100 border border-amber-200 p-2.5 sm:p-3.5 rounded-2xl flex items-center justify-between transition shadow-xs">
+      <div id="card-today" onclick="setFilter('today')" class="cursor-pointer bg-amber-50 hover:bg-amber-100 border border-amber-200 p-2.5 sm:p-3.5 rounded-2xl flex items-center justify-between transition shadow-xs">
         <div>
           <span class="text-[10px] sm:text-xs font-bold uppercase text-amber-700 block">🔥 Due Today</span>
           <span class="text-[10px] sm:text-xs text-amber-600 hidden sm:inline">ഇന്ന് തീരേണ്ടവ</span>
@@ -115,7 +115,7 @@
       </div>
 
       <!-- Sent Pending Box -->
-      <div onclick="setFilter('sent')" class="cursor-pointer bg-purple-50 hover:bg-purple-100 border border-purple-200 p-2.5 sm:p-3.5 rounded-2xl flex items-center justify-between transition shadow-xs">
+      <div id="card-sent" onclick="setFilter('sent')" class="cursor-pointer bg-purple-50 hover:bg-purple-100 border border-purple-200 p-2.5 sm:p-3.5 rounded-2xl flex items-center justify-between transition shadow-xs">
         <div>
           <span class="text-[10px] sm:text-xs font-bold uppercase text-purple-700 block">📤 Sent Pending</span>
           <span class="text-[10px] sm:text-xs text-purple-600 hidden sm:inline">മറ്റുള്ളവരിൽ ബാക്കിയുള്ളവ</span>
@@ -486,18 +486,16 @@
       return dateStr;
     }
 
-    // മാന്യവും ബഹുമാനപൂർവ്വവുമായ WhatsApp സന്ദേശങ്ങൾ തയ്യാറാക്കുന്ന ഫംഗ്ഷൻ
     function buildPoliteAssignMessage(recipientName, title, details, dateStr) {
       const msgLines = [
         "അസ്സലാമു അലൈക്കും,",
-        "ബഹുമാനപ്പെട്ട *" + recipientName + "*,",
+        "To: *" + recipientName + "*",
         "",
-        "താഴെ പറയുന്ന കാര്യം ശ്രദ്ധയിൽപ്പെടുത്തുന്നു:",
-        "📌 *വിഷയം:* " + title,
-        details ? "*വിശദാംശങ്ങൾ:* " + details : "",
-        "📅 *അവസാന തീയതി:* " + formatDateDMY(dateStr),
+        "📌 *Task:* " + title,
+        details ? "*Details:* " + details : "",
+        "📅 *Target Date:* " + formatDateDMY(dateStr),
         "",
-        "നിശ്ചിത സമയത്തിനുള്ളിൽ ഇത് പൂർത്തിയാക്കി നൽകാൻ അഭ്യർത്ഥിക്കുന്നു. ജസാക്കല്ലാഹു ഖൈർ."
+        "നിശ്ചിത സമയത്തിനുള്ളിൽ ഇത് പൂർത്തിയാക്കുമല്ലോ. ജസാക്കല്ലാഹു ഖൈർ."
       ].filter(line => line !== "");
       return encodeURIComponent(msgLines.join("\n"));
     }
@@ -505,11 +503,11 @@
     function buildPoliteThanksMessage(recipientName, title) {
       const msgLines = [
         "അസ്സലാമു അലൈക്കും,",
-        "ബഹുമാനപ്പെട്ട *" + recipientName + "*,",
+        "To: *" + recipientName + "*",
         "",
-        "താങ്കളെ ഏൽപ്പിച്ചിരുന്ന *" + title + "* എന്ന വിഷയം കൃത്യമായി പൂർത്തിയാക്കി നൽകിയതിന് ഹൃദയംഗമമായ നന്ദി അറിയിക്കുന്നു.",
+        "✅ *Task:* " + title,
         "",
-        "ജസാക്കല്ലാഹു ഖൈറൻ കസീറ."
+        "ഈ ടാസ്ക് പൂർത്തിയാക്കിയതിന് നന്ദി അറിയിക്കുന്നു. ജസാക്കല്ലാഹു ഖൈർ."
       ];
       return encodeURIComponent(msgLines.join("\n"));
     }
@@ -785,11 +783,20 @@
           btn.className = "flex-1 py-2 px-3 sm:px-4 rounded-xl text-slate-600 whitespace-nowrap transition flex items-center justify-center gap-1.5";
         }
       });
-      loadTasks();
-    }
 
-    function jumpToPriorityTasks() {
-      setFilter('sent');
+      const cOverdue = document.getElementById("card-overdue");
+      const cToday = document.getElementById("card-today");
+      const cSent = document.getElementById("card-sent");
+
+      cOverdue.classList.remove("ring-2", "ring-red-500");
+      cToday.classList.remove("ring-2", "ring-amber-500");
+      cSent.classList.remove("ring-2", "ring-purple-500");
+
+      if (type === 'overdue') cOverdue.classList.add("ring-2", "ring-red-500");
+      if (type === 'today') cToday.classList.add("ring-2", "ring-amber-500");
+      if (type === 'sent') cSent.classList.add("ring-2", "ring-purple-500");
+
+      loadTasks();
     }
 
     async function refreshSummaryCounters() {
@@ -853,6 +860,9 @@
 
       refreshSummaryCounters();
 
+      const now = new Date();
+      const todayStr = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, '0') + "-" + String(now.getDate()).padStart(2, '0');
+
       let query = db.from('tasks').select('*');
 
       if (searchQuery) {
@@ -865,36 +875,41 @@
           }
         }
         query = query.order('target_date', { ascending: false });
+      } else if (currentFilter === 'overdue') {
+        query = query.neq('status', 'Completed').lt('target_date', todayStr);
+        if (currentUser !== 'Admin') {
+          query = query.or(`assigned_to.eq.${currentUser},and(assigned_by.eq.${currentUser},is_archived.eq.false)`);
+        }
+        query = query.order('target_date', { ascending: true });
+      } else if (currentFilter === 'today') {
+        query = query.neq('status', 'Completed').eq('target_date', todayStr);
+        if (currentUser !== 'Admin') {
+          query = query.or(`assigned_to.eq.${currentUser},and(assigned_by.eq.${currentUser},is_archived.eq.false)`);
+        }
+        query = query.order('target_date', { ascending: true });
+      } else if (currentFilter === 'sent') {
+        query = query.eq('assigned_by', currentUser).eq('is_archived', false).order('target_date', { ascending: true });
+      } else if (currentFilter === 'completed') {
+        if (currentUser !== 'Admin') {
+          query = query.or(`assigned_to.eq.${currentUser},assigned_by.eq.${currentUser}`).eq('status', 'Completed');
+        } else {
+          const adminFilter = document.getElementById("adminDeptFilter").value;
+          if (adminFilter !== "All") {
+            query = query.eq('assigned_to', adminFilter);
+          }
+          query = query.eq('status', 'Completed');
+        }
+        query = query.order('target_date', { ascending: false });
       } else {
-        if (currentFilter === 'sent') {
-          query = query.eq('assigned_by', currentUser).eq('is_archived', false);
-        } else if (currentFilter === 'completed') {
-          if (currentUser !== 'Admin') {
-            query = query.or(`assigned_to.eq.${currentUser},assigned_by.eq.${currentUser}`).eq('status', 'Completed');
-          } else {
-            const adminFilter = document.getElementById("adminDeptFilter").value;
-            if (adminFilter !== "All") {
-              query = query.eq('assigned_to', adminFilter);
-            }
-            query = query.eq('status', 'Completed');
-          }
+        if (currentUser !== 'Admin') {
+          query = query.eq('assigned_to', currentUser);
         } else {
-          if (currentUser !== 'Admin') {
-            query = query.eq('assigned_to', currentUser);
-          } else {
-            const adminFilter = document.getElementById("adminDeptFilter").value;
-            if (adminFilter !== "All") {
-              query = query.eq('assigned_to', adminFilter);
-            }
+          const adminFilter = document.getElementById("adminDeptFilter").value;
+          if (adminFilter !== "All") {
+            query = query.eq('assigned_to', adminFilter);
           }
-          query = query.neq('status', 'Completed');
         }
-
-        if (currentFilter === 'completed') {
-          query = query.order('target_date', { ascending: false });
-        } else {
-          query = query.order('target_date', { ascending: true });
-        }
+        query = query.neq('status', 'Completed').order('target_date', { ascending: true });
       }
 
       let { data: tasks } = await query;
@@ -933,20 +948,19 @@
         let targetPhone = isExternal ? (t.external_phone || '') : (receiver?.phone || '');
         const receiverHead = (!isExternal && !isSelf && receiver?.head_name) ? ' (' + receiver.head_name + ')' : '';
 
-        // 1. പെൻഡിംഗ് ടാസ്കുകൾക്ക് മാന്യമായ ഫോളോ-അപ്പ് മെസ്സേജ്
         if (!isSelf && t.status !== 'Completed') {
           if (isSenderOrAdmin) {
             if (targetPhone) {
               const cleanPhone = targetPhone.replace(/[^0-9]/g, '');
               const msgLines = [
                 "അസ്സലാമു അലൈക്കും,",
-                "ബഹുമാനപ്പെട്ട *" + targetDisplayName + "*" + receiverHead + ",",
+                "To: *" + targetDisplayName + "*" + receiverHead,
                 "",
-                "📌 *വിഷയം:* " + t.title,
-                t.details ? "*വിശദാംശങ്ങൾ:* " + t.details : "",
-                "📅 *അവസാന തീയതി:* " + displayDate,
+                "📌 *Task:* " + t.title,
+                t.details ? "*Details:* " + t.details : "",
+                "📅 *Target Date:* " + displayDate,
                 "",
-                "ഈ വിഷയത്തിലെ നിലവിലെ പുരോഗതി ദയവായി അറിയിക്കണമെന്ന് അഭ്യർത്ഥിക്കുന്നു. ജസാക്കല്ലാഹു ഖൈർ."
+                "ഈ വിഷയത്തിന്റെ നിലവിലെ പുരോഗതി അറിയിക്കുമല്ലോ. ജസാക്കല്ലാഹു ഖൈർ."
               ].filter(function(line) { return line !== ""; });
 
               const finalMsg = encodeURIComponent(msgLines.join("\n"));
@@ -957,7 +971,6 @@
           }
         }
 
-        // 2. പൂർത്തിയായ (Completed) ടാസ്കുകൾക്ക് നന്ദി അറിയിക്കാനുള്ള (Send Thanks) ബട്ടൺ
         let thanksBtn = '';
         if (t.status === 'Completed' && !isSelf && isSenderOrAdmin && targetPhone) {
           const cleanPhone = targetPhone.replace(/[^0-9]/g, '');
@@ -1095,7 +1108,7 @@
           const validRecipients = peopleSnapshot.filter(p => p.phone);
           if (validRecipients.length > 0) {
             document.getElementById('notifyTitle').innerText = `${peopleSnapshot.length} Task(s) Assigned!`;
-            document.getElementById('notifyDesc').innerText = "താഴെ കാണുന്നവരിൽ ക്ലിക്ക് ചെയ്ത് ഓരോരുത്തർക്കും മാന്യമായ WhatsApp അറിയിപ്പ് അയക്കാം:";
+            document.getElementById('notifyDesc').innerText = "താഴെ കാണുന്നവരിൽ ക്ലിക്ക് ചെയ്ത് ഓരോരുത്തർക്കും WhatsApp അറിയിപ്പ് അയക്കാം:";
             
             document.getElementById('notifyButtonsList').innerHTML = validRecipients.map(p => {
               const cleanPhone = p.phone.replace(/[^0-9]/g, '');
@@ -1272,13 +1285,12 @@
           const cleanPhone = sender.phone.replace(/[^0-9]/g, '');
           const msgLines = [
             "അസ്സലാമു അലൈക്കും,",
-            "ബഹുമാനപ്പെട്ട *" + task.assigned_by + "*,",
+            "To: *" + task.assigned_by + "*",
             "",
-            "താങ്കൾ ശ്രദ്ധയിൽപ്പെടുത്തിയിരുന്ന താഴെ പറയുന്ന വിഷയം പൂർത്തിയായിട്ടുണ്ട്:",
-            "✅ *വിഷയം:* " + task.title,
-            reason ? "*കുറിപ്പ്:* " + reason : "",
+            "✅ *Task:* " + task.title,
+            reason ? "*Remarks:* " + reason : "",
             "",
-            "ദയവായി പരിശോധിക്കുക. ജസാക്കല്ലാഹു ഖൈർ."
+            "ഈ ടാസ്ക് പൂർത്തിയായിട്ടുണ്ട്. ദയവായി പരിശോധിക്കുക. ജസാക്കല്ലാഹു ഖൈർ."
           ].filter(line => line !== "");
 
           const finalMsg = encodeURIComponent(msgLines.join("\n"));
@@ -1294,7 +1306,6 @@
       }
     }
 
-    // ARCHIVE & SEND THANKS MODAL
     function openArchiveModal(id, recipientEncoded, phone, titleEncoded) {
       document.getElementById('archiveTargetId').value = id;
       const thanksBtn = document.getElementById('archiveThanksWaBtn');
@@ -1329,7 +1340,6 @@
       }
     }
 
-    // DIRECTORY MULTI-SELECT FUNCTIONS
     function openDirectoryModal() {
       isMultiPickerMode = false;
       document.getElementById("dirMultiConfirmBox").classList.add("hidden");
