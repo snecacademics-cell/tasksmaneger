@@ -132,9 +132,10 @@
       </select>
     </div>
 
-    <!-- Controls & Tab Nav with Counters -->
-    <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
-      <div class="flex bg-slate-200 p-1 rounded-2xl overflow-x-auto text-xs sm:text-sm font-semibold max-w-lg">
+    <!-- Controls, Global Search & Tab Nav -->
+    <div class="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 mb-5">
+      <!-- Tabs -->
+      <div class="flex bg-slate-200 p-1 rounded-2xl overflow-x-auto text-xs sm:text-sm font-semibold">
         <button onclick="setFilter('pending')" id="tab-pending" class="flex-1 py-2 px-3 sm:px-4 rounded-xl bg-white text-blue-700 shadow-sm whitespace-nowrap transition flex items-center justify-center gap-1.5">
           <span>Upcoming</span>
           <span id="badge-pending" class="px-1.5 py-0.2 text-[10px] rounded-full bg-blue-100 text-blue-800 font-bold">0</span>
@@ -148,10 +149,19 @@
           <span>✅ History</span>
         </button>
       </div>
-      
-      <button onclick="openModal('addTaskModal')" class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold px-5 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 transition">
-        <span>+</span> Assign New Task
-      </button>
+
+      <!-- Global Search Input + Assign Button -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 lg:justify-end">
+        <div class="relative flex-1 sm:max-w-xs">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+          <input type="text" id="globalTaskSearch" oninput="handleGlobalSearch()" placeholder="Search all tasks, names, dates..." class="w-full pl-8 pr-8 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-xs">
+          <button type="button" id="clearSearchBtn" onclick="clearGlobalSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold">✕</button>
+        </div>
+
+        <button onclick="openModal('addTaskModal')" class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold px-5 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 transition whitespace-nowrap">
+          <span>+</span> Assign New Task
+        </button>
+      </div>
     </div>
 
     <!-- Task List -->
@@ -461,6 +471,7 @@
     let selectedExternalPeople = []; 
     let tempDirSelection = new Map(); 
     let isMultiPickerMode = false;
+    let searchTimeout = null;
 
     function formatDateDMY(dateStr) {
       if (!dateStr) return "";
@@ -506,6 +517,28 @@
       }
 
       return { level: 'normal', badge: '', cardBorder: 'border-slate-200' };
+    }
+
+    // GLOBAL SEARCH HANDLERS
+    function handleGlobalSearch() {
+      const val = document.getElementById("globalTaskSearch").value.trim();
+      const clearBtn = document.getElementById("clearSearchBtn");
+      if (val) {
+        clearBtn.classList.remove("hidden");
+      } else {
+        clearBtn.classList.add("hidden");
+      }
+
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        loadTasks();
+      }, 250);
+    }
+
+    function clearGlobalSearch() {
+      document.getElementById("globalTaskSearch").value = "";
+      document.getElementById("clearSearchBtn").classList.add("hidden");
+      loadTasks();
     }
 
     // MULTI-SELECT EXTERNAL PERSONS FUNCTIONS
@@ -708,6 +741,13 @@
 
     function setFilter(type) {
       currentFilter = type;
+      // ടാബ് മാറ്റുമ്പോൾ സെർച്ച് ബോക്സ് ക്ലിയർ ചെയ്യുന്നു
+      const searchInput = document.getElementById("globalTaskSearch");
+      if (searchInput && searchInput.value) {
+        searchInput.value = "";
+        document.getElementById("clearSearchBtn").classList.add("hidden");
+      }
+
       ['pending', 'sent', 'completed'].forEach(function(tab) {
         const btn = document.getElementById('tab-' + tab);
         if (tab === type) {
@@ -777,46 +817,77 @@
 
     async function loadTasks() {
       const container = document.getElementById("taskContainer");
+      const searchInput = document.getElementById("globalTaskSearch");
+      const searchQuery = searchInput ? searchInput.value.trim().toLowerCase() : "";
+
       container.innerHTML = '<p class="text-center text-slate-400 py-12 text-sm">Loading...</p>';
 
       refreshSummaryCounters();
 
       let query = db.from('tasks').select('*');
 
-      if (currentFilter === 'sent') {
-        query = query.eq('assigned_by', currentUser).eq('is_archived', false);
-      } else if (currentFilter === 'completed') {
+      if (searchQuery) {
+        // സെർച്ച് ചെയ്യുമ്പോൾ: Upcoming, Sent, History എന്നീ എല്ലാ വിഭാഗങ്ങളിലുമുള്ള ടാസ്കുകൾ ഒരുമിച്ച് എടുക്കുന്നു
         if (currentUser !== 'Admin') {
-          query = query.or(`assigned_to.eq.${currentUser},assigned_by.eq.${currentUser}`).eq('status', 'Completed');
+          query = query.or(`assigned_to.eq.${currentUser},assigned_by.eq.${currentUser}`);
         } else {
           const adminFilter = document.getElementById("adminDeptFilter").value;
           if (adminFilter !== "All") {
-            query = query.eq('assigned_to', adminFilter);
-          }
-          query = query.eq('status', 'Completed');
-        }
-      } else {
-        if (currentUser !== 'Admin') {
-          query = query.eq('assigned_to', currentUser);
-        } else {
-          const adminFilter = document.getElementById("adminDeptFilter").value;
-          if (adminFilter !== "All") {
-            query = query.eq('assigned_to', adminFilter);
+            query = query.or(`assigned_to.eq.${adminFilter},assigned_by.eq.${adminFilter}`);
           }
         }
-        query = query.neq('status', 'Completed');
-      }
-
-      if (currentFilter === 'completed') {
         query = query.order('target_date', { ascending: false });
       } else {
-        query = query.order('target_date', { ascending: true });
+        if (currentFilter === 'sent') {
+          query = query.eq('assigned_by', currentUser).eq('is_archived', false);
+        } else if (currentFilter === 'completed') {
+          if (currentUser !== 'Admin') {
+            query = query.or(`assigned_to.eq.${currentUser},assigned_by.eq.${currentUser}`).eq('status', 'Completed');
+          } else {
+            const adminFilter = document.getElementById("adminDeptFilter").value;
+            if (adminFilter !== "All") {
+              query = query.eq('assigned_to', adminFilter);
+            }
+            query = query.eq('status', 'Completed');
+          }
+        } else {
+          if (currentUser !== 'Admin') {
+            query = query.eq('assigned_to', currentUser);
+          } else {
+            const adminFilter = document.getElementById("adminDeptFilter").value;
+            if (adminFilter !== "All") {
+              query = query.eq('assigned_to', adminFilter);
+            }
+          }
+          query = query.neq('status', 'Completed');
+        }
+
+        if (currentFilter === 'completed') {
+          query = query.order('target_date', { ascending: false });
+        } else {
+          query = query.order('target_date', { ascending: true });
+        }
       }
 
-      const { data: tasks } = await query;
+      let { data: tasks } = await query;
+
+      // സെർച്ച് ഫിൽട്ടർ (Title, Details, To, From, Teacher Name, Phone, Date, Remarks)
+      if (searchQuery && tasks) {
+        tasks = tasks.filter(t => {
+          const dmy = formatDateDMY(t.target_date);
+          return (t.title && t.title.toLowerCase().includes(searchQuery)) ||
+                 (t.details && t.details.toLowerCase().includes(searchQuery)) ||
+                 (t.assigned_to && t.assigned_to.toLowerCase().includes(searchQuery)) ||
+                 (t.assigned_by && t.assigned_by.toLowerCase().includes(searchQuery)) ||
+                 (t.external_name && t.external_name.toLowerCase().includes(searchQuery)) ||
+                 (t.external_phone && t.external_phone.includes(searchQuery)) ||
+                 (t.remarks && t.remarks.toLowerCase().includes(searchQuery)) ||
+                 (dmy && dmy.includes(searchQuery));
+        });
+      }
 
       if (!tasks || tasks.length === 0) {
-        container.innerHTML = '<p class="text-center text-slate-400 py-12 text-sm text-slate-500">No tasks found in this view.</p>';
+        container.innerHTML = `<p class="text-center text-slate-400 py-12 text-sm text-slate-500">${searchQuery ? 'No matching tasks found for "' + searchQuery + '".' : 'No tasks found in this view.'}</p>`;
         return;
       }
 
@@ -883,7 +954,7 @@
             '<button onclick="openEditModal(' + editArgs + ')" class="py-1.5 sm:py-2 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold text-center text-xs sm:text-sm transition">Edit</button>' +
           '</div>';
         } else {
-          const archiveBtn = (currentFilter === 'sent') 
+          const archiveBtn = (currentFilter === 'sent' && !t.is_archived) 
             ? '<button onclick="openArchiveModal(' + t.id + ')" class="px-3.5 py-1.5 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 transition">📦 Move to History</button>' 
             : '';
 
@@ -937,7 +1008,6 @@
       }, 500);
     }
 
-    // UPDATED ADD TASK (MULTI-SELECT SUPPORTED)
     async function handleAddTask(e) {
       e.preventDefault();
       const btn = document.getElementById("btnSaveTask");
