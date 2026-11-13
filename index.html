@@ -324,18 +324,23 @@
     </div>
   </div>
 
-  <!-- ARCHIVE CONFIRMATION MODAL -->
+  <!-- ARCHIVE & THANK YOU CONFIRMATION MODAL -->
   <div id="archiveModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
     <div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl text-center border border-slate-100">
       <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
         📦
       </div>
       <h3 class="text-base font-bold text-slate-800 mb-1">Move to History?</h3>
-      <p class="text-xs text-slate-500 mb-4">ഈ ടാസ്ക് പൂർത്തിയായിട്ടുണ്ട്. ഇത് Sent ലിസ്റ്റിൽ നിന്ന് ഒഴിവാക്കി History-യിലേക്ക് മാറ്റട്ടെ?</p>
+      <p class="text-xs text-slate-500 mb-4">ഈ ടാസ്ക് പൂർത്തിയായിട്ടുണ്ട്. നന്ദി അറിയിച്ചുകൊണ്ട് ഇത് History-യിലേക്ക് മാറ്റട്ടെ?</p>
       <input type="hidden" id="archiveTargetId">
-      <div class="flex gap-2">
-        <button type="button" onclick="closeModal('archiveModal')" class="flex-1 py-2 border rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50">Cancel</button>
-        <button type="button" onclick="confirmArchiveExecution()" class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow">Yes, Move</button>
+      <div class="flex flex-col gap-2">
+        <a id="archiveThanksWaBtn" href="#" target="_blank" onclick="confirmArchiveExecution()" class="hidden w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow flex items-center justify-center gap-1.5">
+          🙏 Send Thanks & Move to History
+        </a>
+        <div class="flex gap-2">
+          <button type="button" onclick="closeModal('archiveModal')" class="flex-1 py-2 border rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50">Cancel</button>
+          <button type="button" onclick="confirmArchiveExecution()" class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow">Move Only</button>
+        </div>
       </div>
     </div>
   </div>
@@ -467,7 +472,6 @@
     let departmentsData = [];
     let directoryData = [];
     
-    // Multi-Select State Variables
     let selectedExternalPeople = []; 
     let tempDirSelection = new Map(); 
     let isMultiPickerMode = false;
@@ -480,6 +484,34 @@
         return parts[2] + "-" + parts[1] + "-" + parts[0];
       }
       return dateStr;
+    }
+
+    // മാന്യവും ബഹുമാനപൂർവ്വവുമായ WhatsApp സന്ദേശങ്ങൾ തയ്യാറാക്കുന്ന ഫംഗ്ഷൻ
+    function buildPoliteAssignMessage(recipientName, title, details, dateStr) {
+      const msgLines = [
+        "അസ്സലാമു അലൈക്കും,",
+        "ബഹുമാനപ്പെട്ട *" + recipientName + "*,",
+        "",
+        "താഴെ പറയുന്ന കാര്യം ശ്രദ്ധയിൽപ്പെടുത്തുന്നു:",
+        "📌 *വിഷയം:* " + title,
+        details ? "*വിശദാംശങ്ങൾ:* " + details : "",
+        "📅 *അവസാന തീയതി:* " + formatDateDMY(dateStr),
+        "",
+        "നിശ്ചിത സമയത്തിനുള്ളിൽ ഇത് പൂർത്തിയാക്കി നൽകാൻ അഭ്യർത്ഥിക്കുന്നു. ജസാക്കല്ലാഹു ഖൈർ."
+      ].filter(line => line !== "");
+      return encodeURIComponent(msgLines.join("\n"));
+    }
+
+    function buildPoliteThanksMessage(recipientName, title) {
+      const msgLines = [
+        "അസ്സലാമു അലൈക്കും,",
+        "ബഹുമാനപ്പെട്ട *" + recipientName + "*,",
+        "",
+        "താങ്കളെ ഏൽപ്പിച്ചിരുന്ന *" + title + "* എന്ന വിഷയം കൃത്യമായി പൂർത്തിയാക്കി നൽകിയതിന് ഹൃദയംഗമമായ നന്ദി അറിയിക്കുന്നു.",
+        "",
+        "ജസാക്കല്ലാഹു ഖൈറൻ കസീറ."
+      ];
+      return encodeURIComponent(msgLines.join("\n"));
     }
 
     function getUrgencyInfo(dateStr, status) {
@@ -519,7 +551,6 @@
       return { level: 'normal', badge: '', cardBorder: 'border-slate-200' };
     }
 
-    // GLOBAL SEARCH HANDLERS
     function handleGlobalSearch() {
       const val = document.getElementById("globalTaskSearch").value.trim();
       const clearBtn = document.getElementById("clearSearchBtn");
@@ -541,7 +572,6 @@
       loadTasks();
     }
 
-    // MULTI-SELECT EXTERNAL PERSONS FUNCTIONS
     function addManualExternalPerson() {
       const nameEl = document.getElementById("manualExtName");
       const phoneEl = document.getElementById("manualExtPhone");
@@ -741,7 +771,6 @@
 
     function setFilter(type) {
       currentFilter = type;
-      // ടാബ് മാറ്റുമ്പോൾ സെർച്ച് ബോക്സ് ക്ലിയർ ചെയ്യുന്നു
       const searchInput = document.getElementById("globalTaskSearch");
       if (searchInput && searchInput.value) {
         searchInput.value = "";
@@ -827,7 +856,6 @@
       let query = db.from('tasks').select('*');
 
       if (searchQuery) {
-        // സെർച്ച് ചെയ്യുമ്പോൾ: Upcoming, Sent, History എന്നീ എല്ലാ വിഭാഗങ്ങളിലുമുള്ള ടാസ്കുകൾ ഒരുമിച്ച് എടുക്കുന്നു
         if (currentUser !== 'Admin') {
           query = query.or(`assigned_to.eq.${currentUser},assigned_by.eq.${currentUser}`);
         } else {
@@ -871,7 +899,6 @@
 
       let { data: tasks } = await query;
 
-      // സെർച്ച് ഫിൽട്ടർ (Title, Details, To, From, Teacher Name, Phone, Date, Remarks)
       if (searchQuery && tasks) {
         tasks = tasks.filter(t => {
           const dmy = formatDateDMY(t.target_date);
@@ -906,20 +933,20 @@
         let targetPhone = isExternal ? (t.external_phone || '') : (receiver?.phone || '');
         const receiverHead = (!isExternal && !isSelf && receiver?.head_name) ? ' (' + receiver.head_name + ')' : '';
 
+        // 1. പെൻഡിംഗ് ടാസ്കുകൾക്ക് മാന്യമായ ഫോളോ-അപ്പ് മെസ്സേജ്
         if (!isSelf && t.status !== 'Completed') {
           if (isSenderOrAdmin) {
             if (targetPhone) {
               const cleanPhone = targetPhone.replace(/[^0-9]/g, '');
               const msgLines = [
-                "Assalamu Alaikum,",
-                "To: *" + targetDisplayName + "*" + receiverHead,
+                "അസ്സലാമു അലൈക്കും,",
+                "ബഹുമാനപ്പെട്ട *" + targetDisplayName + "*" + receiverHead + ",",
                 "",
-                "*Task:* " + t.title,
-                t.details ? "*Details:* " + t.details : "",
-                "*Target Date:* " + displayDate,
-                "*Status:* " + t.status,
+                "📌 *വിഷയം:* " + t.title,
+                t.details ? "*വിശദാംശങ്ങൾ:* " + t.details : "",
+                "📅 *അവസാന തീയതി:* " + displayDate,
                 "",
-                "ഈ വർക്ക് സംബന്ധിച്ച നിലവിലെ വിവരം ദയവായി അപ്‌ഡേറ്റ് ചെയ്യുമല്ലോ."
+                "ഈ വിഷയത്തിലെ നിലവിലെ പുരോഗതി ദയവായി അറിയിക്കണമെന്ന് അഭ്യർത്ഥിക്കുന്നു. ജസാക്കല്ലാഹു ഖൈർ."
               ].filter(function(line) { return line !== ""; });
 
               const finalMsg = encodeURIComponent(msgLines.join("\n"));
@@ -928,6 +955,14 @@
               waBtn = '<button onclick="openEditModal(' + t.id + ', \'' + encodeURIComponent(t.title) + '\', \'' + encodeURIComponent(t.details || '') + '\', \'' + t.target_date + '\', \'' + t.assigned_to + '\', \'' + (t.assignee_type || 'department') + '\', \'' + encodeURIComponent(t.external_name || '') + '\', \'' + (t.external_phone || '') + '\', ' + canDelete + ')" class="w-full sm:w-auto px-3 py-1.5 bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold">⚠️ Add Phone (' + targetDisplayName + ')</button>';
             }
           }
+        }
+
+        // 2. പൂർത്തിയായ (Completed) ടാസ്കുകൾക്ക് നന്ദി അറിയിക്കാനുള്ള (Send Thanks) ബട്ടൺ
+        let thanksBtn = '';
+        if (t.status === 'Completed' && !isSelf && isSenderOrAdmin && targetPhone) {
+          const cleanPhone = targetPhone.replace(/[^0-9]/g, '');
+          const thanksEncoded = buildPoliteThanksMessage(targetDisplayName, t.title);
+          thanksBtn = '<a href="https://api.whatsapp.com/send?phone=' + cleanPhone + '&text=' + thanksEncoded + '" target="_blank" class="px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 transition">🙏 Send Thanks</a>';
         }
 
         const detailsHtml = t.details ? '<p class="text-xs sm:text-sm text-slate-600 mt-1 whitespace-pre-line leading-relaxed">' + t.details + '</p>' : '';
@@ -955,11 +990,11 @@
           '</div>';
         } else {
           const archiveBtn = (currentFilter === 'sent' && !t.is_archived) 
-            ? '<button onclick="openArchiveModal(' + t.id + ')" class="px-3.5 py-1.5 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 transition">📦 Move to History</button>' 
+            ? '<button onclick="openArchiveModal(' + t.id + ', \'' + encodeURIComponent(targetDisplayName) + '\', \'' + targetPhone + '\', \'' + encodeURIComponent(t.title) + '\')" class="px-3.5 py-1.5 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 transition">📦 Move to History</button>' 
             : '';
 
-          actionButtons = '<div class="flex items-center justify-between gap-2 flex-1">' +
-            archiveBtn +
+          actionButtons = '<div class="flex flex-wrap items-center justify-between gap-2 flex-1">' +
+            '<div class="flex flex-wrap items-center gap-2">' + archiveBtn + thanksBtn + '</div>' +
             '<button onclick="openEditModal(' + editArgs + ')" class="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold text-xs sm:text-sm">Edit</button>' +
           '</div>';
         }
@@ -1060,23 +1095,11 @@
           const validRecipients = peopleSnapshot.filter(p => p.phone);
           if (validRecipients.length > 0) {
             document.getElementById('notifyTitle').innerText = `${peopleSnapshot.length} Task(s) Assigned!`;
-            document.getElementById('notifyDesc').innerText = "താഴെ കാണുന്നവരിൽ ക്ലിക്ക് ചെയ്ത് ഓരോരുത്തർക്കും WhatsApp അറിയിപ്പ് അയക്കാം:";
+            document.getElementById('notifyDesc').innerText = "താഴെ കാണുന്നവരിൽ ക്ലിക്ക് ചെയ്ത് ഓരോരുത്തർക്കും മാന്യമായ WhatsApp അറിയിപ്പ് അയക്കാം:";
             
             document.getElementById('notifyButtonsList').innerHTML = validRecipients.map(p => {
               const cleanPhone = p.phone.replace(/[^0-9]/g, '');
-              const msgLines = [
-                "Assalamu Alaikum,",
-                "To: *" + p.name + "*",
-                "",
-                "പുതിയൊരു ടാസ്ക് താങ്കളെ ഏൽപ്പിച്ചിട്ടുണ്ട്:",
-                "📌 *Task:* " + title,
-                details ? "*Details:* " + details : "",
-                "📅 *Target Date:* " + formatDateDMY(date),
-                "",
-                "നിശ്ചിത തീയതിക്കകം ഈ വർക്ക് പൂർത്തിയാക്കുമല്ലോ. ജസാക്കല്ലാഹു ഖൈർ."
-              ].filter(line => line !== "");
-
-              const finalMsg = encodeURIComponent(msgLines.join("\n"));
+              const finalMsg = buildPoliteAssignMessage(p.name, title, details, date);
               return `
                 <a href="https://api.whatsapp.com/send?phone=${cleanPhone}&text=${finalMsg}" target="_blank" class="w-full py-2 px-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold flex items-center justify-between transition">
                   <span>👤 ${p.name}</span>
@@ -1115,21 +1138,9 @@
         const recDept = departmentsData.find(d => d.name === targetDept);
         if (recDept && recDept.phone) {
           const cleanPhone = recDept.phone.replace(/[^0-9]/g, '');
-          const msgLines = [
-            "Assalamu Alaikum,",
-            "To: *" + targetDept + "*",
-            "",
-            "പുതിയൊരു ടാസ്ക് താങ്കളെ ഏൽപ്പിച്ചിട്ടുണ്ട്:",
-            "📌 *Task:* " + title,
-            details ? "*Details:* " + details : "",
-            "📅 *Target Date:* " + formatDateDMY(date),
-            "",
-            "നിശ്ചിത തീയതിക്കകം ഈ വർക്ക് പൂർത്തിയാക്കുമല്ലോ. ജസാക്കല്ലാഹു ഖൈർ."
-          ].filter(line => line !== "");
-
-          const finalMsg = encodeURIComponent(msgLines.join("\n"));
+          const finalMsg = buildPoliteAssignMessage(targetDept, title, details, date);
           document.getElementById('notifyTitle').innerText = "Task Assigned Successfully!";
-          document.getElementById('notifyDesc').innerText = `${targetDept}-ലേക്ക് ഈ ടാസ്ക് വിവരങ്ങൾ ഇപ്പോൾ തന്നെ WhatsApp സന്ദേശമായി അയക്കാം.`;
+          document.getElementById('notifyDesc').innerText = `${targetDept}-ലേക്ക് ഈ വിഷയം ഇപ്പോൾ തന്നെ WhatsApp സന്ദേശമായി അയക്കാം.`;
           document.getElementById('notifyButtonsList').innerHTML = `
             <a href="https://api.whatsapp.com/send?phone=${cleanPhone}&text=${finalMsg}" target="_blank" onclick="closeModal('notifyModal')" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow">
               💬 Open WhatsApp (${targetDept})
@@ -1260,19 +1271,19 @@
         if (sender && sender.phone) {
           const cleanPhone = sender.phone.replace(/[^0-9]/g, '');
           const msgLines = [
-            "Assalamu Alaikum,",
-            "To: *" + task.assigned_by + "*",
+            "അസ്സലാമു അലൈക്കും,",
+            "ബഹുമാനപ്പെട്ട *" + task.assigned_by + "*,",
             "",
-            "താങ്കൾ ഏൽപ്പിച്ച ടാസ്ക് പൂർത്തിയായിട്ടുണ്ട്:",
-            "✅ *Task:* " + task.title,
-            reason ? "*Remarks:* " + reason : "",
+            "താങ്കൾ ശ്രദ്ധയിൽപ്പെടുത്തിയിരുന്ന താഴെ പറയുന്ന വിഷയം പൂർത്തിയായിട്ടുണ്ട്:",
+            "✅ *വിഷയം:* " + task.title,
+            reason ? "*കുറിപ്പ്:* " + reason : "",
             "",
             "ദയവായി പരിശോധിക്കുക. ജസാക്കല്ലാഹു ഖൈർ."
           ].filter(line => line !== "");
 
           const finalMsg = encodeURIComponent(msgLines.join("\n"));
           document.getElementById('notifyTitle').innerText = "Task Marked as Done!";
-          document.getElementById('notifyDesc').innerText = `ഈ ടാസ്ക് പൂർത്തിയായ വിവരം ${task.assigned_by}-നെ WhatsApp വഴി അറിയിക്കാം.`;
+          document.getElementById('notifyDesc').innerText = `ഈ വിഷയം പൂർത്തിയായ വിവരം ${task.assigned_by}-നെ WhatsApp വഴി അറിയിക്കാം.`;
           document.getElementById('notifyButtonsList').innerHTML = `
             <a href="https://api.whatsapp.com/send?phone=${cleanPhone}&text=${finalMsg}" target="_blank" onclick="closeModal('notifyModal')" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow">
               💬 Reply to ${task.assigned_by}
@@ -1283,8 +1294,22 @@
       }
     }
 
-    function openArchiveModal(id) {
+    // ARCHIVE & SEND THANKS MODAL
+    function openArchiveModal(id, recipientEncoded, phone, titleEncoded) {
       document.getElementById('archiveTargetId').value = id;
+      const thanksBtn = document.getElementById('archiveThanksWaBtn');
+      const recipientName = decodeURIComponent(recipientEncoded || '');
+      const title = decodeURIComponent(titleEncoded || '');
+
+      if (phone && recipientName !== 'Self') {
+        const cleanPhone = phone.replace(/[^0-9]/g, '');
+        const msg = buildPoliteThanksMessage(recipientName, title);
+        thanksBtn.href = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${msg}`;
+        thanksBtn.classList.remove("hidden");
+      } else {
+        thanksBtn.classList.add("hidden");
+      }
+
       openModal('archiveModal');
     }
 
