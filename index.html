@@ -932,6 +932,28 @@
         container.innerHTML = `<p class="text-center text-slate-400 py-12 text-sm text-slate-500">${searchQuery ? 'No matching tasks found for "' + searchQuery + '".' : 'No tasks found in this view.'}</p>`;
         return;
       }
+      // സെർച്ച് ചെയ്യുമ്പോൾ ഫലം ഏത് ടാബിലാണോ ഉള്ളത്, ആ ടാബ് മുകളിൽ ഹൈലൈറ്റ് ചെയ്യുന്നു
+      if (searchQuery && tasks.length > 0) {
+        const firstTask = tasks[0];
+        let detectedTab = 'pending';
+        
+        if (firstTask.status === 'Completed' && (firstTask.is_archived || firstTask.assigned_to === currentUser)) {
+          detectedTab = 'completed'; // History
+        } else if (firstTask.assigned_by === currentUser && !firstTask.is_archived) {
+          detectedTab = 'sent'; // Sent
+        } else {
+          detectedTab = 'pending'; // Upcoming
+        }
+
+        ['pending', 'sent', 'completed'].forEach(function(tab) {
+          const btn = document.getElementById('tab-' + tab);
+          if (tab === detectedTab) {
+            btn.className = "flex-1 py-2 px-3 sm:px-4 rounded-xl bg-white text-blue-700 shadow-sm whitespace-nowrap transition flex items-center justify-center gap-1.5";
+          } else {
+            btn.className = "flex-1 py-2 px-3 sm:px-4 rounded-xl text-slate-600 whitespace-nowrap transition flex items-center justify-center gap-1.5";
+          }
+        });
+      }
 
       container.innerHTML = tasks.map(function(t) {
         const isExternal = (t.assignee_type === 'external');
@@ -990,6 +1012,17 @@
         } else if (isExternal) {
           typeBadge = '<span class="bg-indigo-50 text-indigo-700 text-[10px] sm:text-xs px-2 py-0.5 rounded-lg font-bold border border-indigo-200">Teacher/External</span>';
         }
+        // സെർച്ച് ചെയ്യുമ്പോൾ ഈ ടാസ്ക് ഏത് വിഭാഗത്തിലേതാണെന്ന് കാണിക്കുന്ന ലേബൽ
+        let locationBadge = '';
+        if (searchQuery) {
+          if (t.status === 'Completed' && (t.is_archived || t.assigned_to === currentUser)) {
+            locationBadge = '<span class="bg-slate-100 text-slate-700 text-[10px] px-2 py-0.5 rounded-lg font-bold border border-slate-300">✅ History</span>';
+          } else if (t.assigned_by === currentUser && !t.is_archived) {
+            locationBadge = '<span class="bg-purple-50 text-purple-700 text-[10px] px-2 py-0.5 rounded-lg font-bold border border-purple-200">📤 Sent</span>';
+          } else {
+            locationBadge = '<span class="bg-blue-50 text-blue-700 text-[10px] px-2 py-0.5 rounded-lg font-bold border border-blue-200">📥 Upcoming</span>';
+          }
+        }
 
         const editArgs = t.id + ', \'' + encodeURIComponent(t.title) + '\', \'' + encodeURIComponent(t.details || '') + '\', \'' + t.target_date + '\', \'' + t.assigned_to + '\', \'' + (t.assignee_type || 'department') + '\', \'' + encodeURIComponent(t.external_name || '') + '\', \'' + (t.external_phone || '') + '\', ' + canDelete;
 
@@ -1019,6 +1052,7 @@
                 '<h4 class="font-bold text-slate-900 text-sm sm:text-base leading-snug">' + t.title + '</h4>' +
                 typeBadge +
                 urgency.badge +
+                locationBadge +
               '</div>' +
               detailsHtml +
             '</div>' +
