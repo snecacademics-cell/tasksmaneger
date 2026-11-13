@@ -94,7 +94,7 @@
       </div>
     </header>
 
-    <!-- SMART ALERT SUMMARY BAR (ഒറ്റ നോട്ടത്തിൽ സ്ഥിതി അറിയാൻ) -->
+    <!-- SMART ALERT SUMMARY BAR -->
     <div id="summaryAlertBar" class="grid grid-cols-3 gap-2 sm:gap-4 mb-4">
       <!-- Overdue Box -->
       <div onclick="jumpToPriorityTasks()" class="cursor-pointer bg-red-50 hover:bg-red-100 border border-red-200 p-2.5 sm:p-3.5 rounded-2xl flex items-center justify-between transition shadow-xs">
@@ -187,22 +187,29 @@
           <select id="targetDept" class="w-full p-2.5 border rounded-xl mb-3 text-xs sm:text-sm bg-slate-50"></select>
         </div>
 
+        <!-- 2. External Teacher/Person Inputs (Multi-Select Supported) -->
         <div id="addExternalBox" class="hidden mb-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
           <div class="flex justify-between items-center mb-2">
-            <label class="text-[11px] font-semibold text-slate-600">Person / Teacher Details</label>
+            <label class="text-[11px] font-semibold text-slate-600">Select Teachers / Persons (Multiple)</label>
             <div class="flex gap-1.5">
-              <button type="button" onclick="openDirectoryPicker('externalName', 'externalPhone')" class="text-[11px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-lg font-bold hover:bg-indigo-100">
-                📖 Directory
+              <button type="button" onclick="openMultiDirectoryPicker()" class="text-[11px] bg-indigo-600 text-white px-2.5 py-1 rounded-lg font-bold hover:bg-indigo-700 shadow-xs">
+                📖 Pick from Directory
               </button>
-              <button type="button" onclick="pickContact('externalName', 'externalPhone')" class="text-[11px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded-lg font-bold hover:bg-slate-300">
+              <button type="button" onclick="pickSinglePhoneContact()" class="text-[11px] bg-slate-200 text-slate-700 px-2 py-1 rounded-lg font-bold hover:bg-slate-300">
                 📱 Phone
               </button>
             </div>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" id="externalName" placeholder="Name / Subject" class="w-full p-2 border rounded-xl text-xs sm:text-sm bg-white">
-            <input type="text" id="externalPhone" placeholder="WhatsApp (91XXXXXXXXXX)" class="w-full p-2 border rounded-xl text-xs sm:text-sm bg-white">
+
+          <!-- Manual Quick Add Row -->
+          <div class="flex gap-1.5 mb-2">
+            <input type="text" id="manualExtName" placeholder="Name" class="w-1/2 p-1.5 border rounded-lg text-xs bg-white">
+            <input type="text" id="manualExtPhone" placeholder="91XXXXXXXXXX" class="w-1/2 p-1.5 border rounded-lg text-xs bg-white">
+            <button type="button" onclick="addManualExternalPerson()" class="px-2.5 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700">+Add</button>
           </div>
+
+          <!-- Selected Persons Chips List -->
+          <div id="selectedExternalList" class="flex flex-wrap gap-1.5 mt-2 empty:hidden"></div>
         </div>
 
         <div id="addSelfBox" class="hidden mb-3 bg-emerald-50 text-emerald-800 p-2.5 rounded-xl border border-emerald-200 text-xs">
@@ -291,20 +298,19 @@
 
   <!-- POST-CREATION / DONE WHATSAPP POPUP MODAL -->
   <div id="notifyModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center">
-      <div id="notifyIcon" class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+    <div class="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-md shadow-2xl text-center max-h-[85vh] flex flex-col">
+      <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-2 text-2xl">
         💬
       </div>
       <h3 id="notifyTitle" class="text-base font-bold text-slate-800 mb-1">Notify via WhatsApp</h3>
-      <p id="notifyDesc" class="text-xs text-slate-500 mb-4"></p>
-      <div class="flex flex-col gap-2">
-        <a id="notifyWaBtn" href="#" target="_blank" onclick="closeModal('notifyModal')" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow">
-          Open WhatsApp
-        </a>
-        <button type="button" onclick="closeModal('notifyModal')" class="w-full py-2 border rounded-xl text-xs font-semibold text-slate-600">
-          Dismiss
-        </button>
-      </div>
+      <p id="notifyDesc" class="text-xs text-slate-500 mb-3"></p>
+      
+      <!-- Dynamic List of WhatsApp Buttons -->
+      <div id="notifyButtonsList" class="space-y-2 overflow-y-auto flex-1 pr-1 mb-3 text-left"></div>
+
+      <button type="button" onclick="closeModal('notifyModal')" class="w-full py-2 border rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50">
+        Done / Close
+      </button>
     </div>
   </div>
 
@@ -363,6 +369,12 @@
           </thead>
           <tbody id="directoryTableBody" class="divide-y divide-slate-100"></tbody>
         </table>
+      </div>
+
+      <div id="dirMultiConfirmBox" class="hidden mt-3 flex gap-2">
+        <button type="button" onclick="confirmMultiDirectorySelection()" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow">
+          ✅ Add Selected Persons (<span id="dirSelectedCount">0</span>)
+        </button>
       </div>
 
       <button onclick="closeModal('directoryModal')" class="mt-3 w-full py-2.5 bg-slate-800 text-white rounded-xl text-xs font-semibold">Close</button>
@@ -444,8 +456,11 @@
     let currentFilter = "pending";
     let departmentsData = [];
     let directoryData = [];
-    let dirTargetNameInput = '';
-    let dirTargetPhoneInput = '';
+    
+    // Multi-Select State Variables
+    let selectedExternalPeople = []; 
+    let tempDirSelection = new Map(); 
+    let isMultiPickerMode = false;
 
     function formatDateDMY(dateStr) {
       if (!dateStr) return "";
@@ -456,7 +471,6 @@
       return dateStr;
     }
 
-    // തീയതി താരതമ്യം ചെയ്ത് urgency സ്റ്റാറ്റസ് കണ്ടുപിടിക്കാൻ
     function getUrgencyInfo(dateStr, status) {
       if (status === 'Completed' || !dateStr) {
         return { level: 'normal', badge: '', cardBorder: 'border-slate-200' };
@@ -494,26 +508,57 @@
       return { level: 'normal', badge: '', cardBorder: 'border-slate-200' };
     }
 
-    async function pickContact(nameInputId, phoneInputId) {
+    // MULTI-SELECT EXTERNAL PERSONS FUNCTIONS
+    function addManualExternalPerson() {
+      const nameEl = document.getElementById("manualExtName");
+      const phoneEl = document.getElementById("manualExtPhone");
+      const name = nameEl.value.trim();
+      let phone = phoneEl.value.trim().replace(/[^0-9]/g, '');
+
+      if (!name) {
+        alert("Please enter a name");
+        return;
+      }
+      if (phone.length === 10) phone = "91" + phone;
+
+      selectedExternalPeople.push({ name: name, phone: phone });
+      nameEl.value = "";
+      phoneEl.value = "";
+      renderSelectedExternalChips();
+    }
+
+    async function pickSinglePhoneContact() {
       if ('contacts' in navigator && 'ContactsManager' in window) {
         try {
-          const props = ['name', 'tel'];
-          const contacts = await navigator.contacts.select(props, { multiple: false });
+          const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: true });
           if (contacts && contacts.length > 0) {
-            const picked = contacts[0];
-            if (picked.name && picked.name.length > 0) {
-              document.getElementById(nameInputId).value = picked.name[0];
-            }
-            if (picked.tel && picked.tel.length > 0) {
-              let clean = picked.tel[0].replace(/[^0-9]/g, '');
-              if (clean.length === 10) clean = '91' + clean;
-              document.getElementById(phoneInputId).value = clean;
-            }
+            contacts.forEach(c => {
+              const name = (c.name && c.name[0]) ? c.name[0] : "Unknown";
+              let phone = (c.tel && c.tel[0]) ? c.tel[0].replace(/[^0-9]/g, '') : "";
+              if (phone.length === 10) phone = "91" + phone;
+              selectedExternalPeople.push({ name: name, phone: phone });
+            });
+            renderSelectedExternalChips();
           }
         } catch (err) {}
       } else {
-        openDirectoryPicker(nameInputId, phoneInputId);
+        openMultiDirectoryPicker();
       }
+    }
+
+    function renderSelectedExternalChips() {
+      const container = document.getElementById("selectedExternalList");
+      container.innerHTML = selectedExternalPeople.map((p, index) => `
+        <span class="inline-flex items-center gap-1.5 bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-1 rounded-lg border border-indigo-200">
+          <span>${p.name} ${p.phone ? `(${p.phone})` : ''}</span>
+          <button type="button" onclick="removeExternalPerson(${index})" class="text-indigo-500 hover:text-red-600 font-bold ml-1">✕</button>
+        </span>
+      `).join('');
+    }
+
+    function removeExternalPerson(index) {
+      selectedExternalPeople.splice(index, 1);
+      renderSelectedExternalChips();
     }
 
     function toggleAssignType(mode, type) {
@@ -642,7 +687,18 @@
         document.getElementById("adminDirAddBox").classList.add("hidden");
       }
       loadTasks();
-      startRealtimeSync(); // <--- ഈ വരി ചേർക്കുക
+      startRealtimeSync();
+    }
+
+    function startRealtimeSync() {
+      db.channel('live-task-updates')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
+          loadTasks();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'directory' }, () => {
+          loadDirectory();
+        })
+        .subscribe();
     }
 
     function handleLogout() {
@@ -664,11 +720,9 @@
     }
 
     function jumpToPriorityTasks() {
-      // Overdue അല്ലെങ്കിൽ Due Today കൂടുതലുള്ളത് Sent ആണെങ്കിൽ അങ്ങോട്ട് മാറ്റുന്നു, അല്ലെങ്കിൽ Upcoming
       setFilter('sent');
     }
 
-    // മുകളിലെ അലർട്ട് ബാറും കൗണ്ടറുകളും അപ്ഡേറ്റ് ചെയ്യാൻ
     async function refreshSummaryCounters() {
       let query = db.from('tasks').select('target_date, status, assigned_to, assigned_by, is_archived').neq('status', 'Completed');
       const { data: activeTasks } = await query;
@@ -725,7 +779,6 @@
       const container = document.getElementById("taskContainer");
       container.innerHTML = '<p class="text-center text-slate-400 py-12 text-sm">Loading...</p>';
 
-      // മുകളിലെ എണ്ണം അപ്ഡേറ്റ് ചെയ്യുന്നു
       refreshSummaryCounters();
 
       let query = db.from('tasks').select('*');
@@ -771,7 +824,6 @@
         const isExternal = (t.assignee_type === 'external');
         const isSelf = (t.assignee_type === 'self' || (t.assigned_to === t.assigned_by && t.assigned_to === currentUser));
         const receiver = departmentsData.find(function(d) { return d.name === t.assigned_to; });
-        const sender = departmentsData.find(function(d) { return d.name === t.assigned_by; });
         const displayDate = formatDateDMY(t.target_date);
         const urgency = getUrgencyInfo(t.target_date, t.status);
 
@@ -871,7 +923,7 @@
         '</div>';
       }).join('');
     }
-    // MANUAL REFRESH WITH SPIN ANIMATION
+
     async function manualRefresh() {
       const icon = document.getElementById("refreshIcon");
       if (icon) icon.classList.add("animate-spin");
@@ -885,6 +937,7 @@
       }, 500);
     }
 
+    // UPDATED ADD TASK (MULTI-SELECT SUPPORTED)
     async function handleAddTask(e) {
       e.preventDefault();
       const btn = document.getElementById("btnSaveTask");
@@ -895,26 +948,82 @@
       const details = document.getElementById("taskDetails").value;
       const date = document.getElementById("targetDate").value;
 
-      let targetDept = currentUser;
-      let extName = '';
-      let extPhone = '';
-
       if (assignType === 'external') {
-        extName = document.getElementById("externalName").value.trim();
-        extPhone = document.getElementById("externalPhone").value.trim();
-        targetDept = 'External';
-        if (!extName) {
-          alert("Please enter the teacher / person name");
+        const pendingName = document.getElementById("manualExtName").value.trim();
+        let pendingPhone = document.getElementById("manualExtPhone").value.trim().replace(/[^0-9]/g, '');
+        if (pendingName) {
+          if (pendingPhone.length === 10) pendingPhone = "91" + pendingPhone;
+          selectedExternalPeople.push({ name: pendingName, phone: pendingPhone });
+        }
+
+        if (selectedExternalPeople.length === 0) {
+          alert("ദയവായി കുറഞ്ഞത് ഒരാളെയെങ്കിലും തിരഞ്ഞെടുക്കുക (Directory-യിൽ നിന്നോ പേര് ടൈപ്പ് ചെയ്തോ ചേർക്കുക).");
           btn.disabled = false;
           return;
         }
-      } else if (assignType === 'self') {
-        targetDept = currentUser;
-      } else {
-        targetDept = document.getElementById("targetDept").value;
+
+        const rowsToInsert = selectedExternalPeople.map(person => ({
+          title: title,
+          details: details,
+          target_date: date,
+          assigned_to: 'External',
+          assigned_by: currentUser,
+          status: 'Pending',
+          assignee_type: 'external',
+          external_name: person.name,
+          external_phone: person.phone
+        }));
+
+        const { error } = await db.from('tasks').insert(rowsToInsert);
+
+        btn.disabled = false;
+        const peopleSnapshot = [...selectedExternalPeople];
+        
+        selectedExternalPeople = [];
+        renderSelectedExternalChips();
+        document.getElementById("addTaskForm").reset();
+        toggleAssignType('add', 'dept');
+        closeModal('addTaskModal');
+        loadTasks();
+
+        if (!error) {
+          const validRecipients = peopleSnapshot.filter(p => p.phone);
+          if (validRecipients.length > 0) {
+            document.getElementById('notifyTitle').innerText = `${peopleSnapshot.length} Task(s) Assigned!`;
+            document.getElementById('notifyDesc').innerText = "താഴെ കാണുന്നവരിൽ ക്ലിക്ക് ചെയ്ത് ഓരോരുത്തർക്കും WhatsApp അറിയിപ്പ് അയക്കാം:";
+            
+            document.getElementById('notifyButtonsList').innerHTML = validRecipients.map(p => {
+              const cleanPhone = p.phone.replace(/[^0-9]/g, '');
+              const msgLines = [
+                "Assalamu Alaikum,",
+                "To: *" + p.name + "*",
+                "",
+                "പുതിയൊരു ടാസ്ക് താങ്കളെ ഏൽപ്പിച്ചിട്ടുണ്ട്:",
+                "📌 *Task:* " + title,
+                details ? "*Details:* " + details : "",
+                "📅 *Target Date:* " + formatDateDMY(date),
+                "",
+                "നിശ്ചിത തീയതിക്കകം ഈ വർക്ക് പൂർത്തിയാക്കുമല്ലോ. ജസാക്കല്ലാഹു ഖൈർ."
+              ].filter(line => line !== "");
+
+              const finalMsg = encodeURIComponent(msgLines.join("\n"));
+              return `
+                <a href="https://api.whatsapp.com/send?phone=${cleanPhone}&text=${finalMsg}" target="_blank" class="w-full py-2 px-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold flex items-center justify-between transition">
+                  <span>👤 ${p.name}</span>
+                  <span class="bg-emerald-600 text-white px-2.5 py-1 rounded-lg">💬 Send WhatsApp</span>
+                </a>
+              `;
+            }).join('');
+
+            openModal('notifyModal');
+          }
+        }
+        return;
       }
 
-      const { data, error } = await db.from('tasks').insert([{
+      let targetDept = (assignType === 'self') ? currentUser : document.getElementById("targetDept").value;
+
+      const { error } = await db.from('tasks').insert([{
         title: title,
         details: details,
         target_date: date,
@@ -922,9 +1031,9 @@
         assigned_by: currentUser,
         status: 'Pending',
         assignee_type: assignType,
-        external_name: extName,
-        external_phone: extPhone
-      }]).select().single();
+        external_name: '',
+        external_phone: ''
+      }]);
 
       btn.disabled = false;
       document.getElementById("addTaskForm").reset();
@@ -932,24 +1041,13 @@
       closeModal('addTaskModal');
       loadTasks();
 
-      if (!error && assignType !== 'self') {
-        let recipientPhone = '';
-        let recipientName = '';
-
-        if (assignType === 'external') {
-          recipientPhone = extPhone;
-          recipientName = extName;
-        } else {
-          const recDept = departmentsData.find(d => d.name === targetDept);
-          recipientPhone = recDept?.phone || '';
-          recipientName = targetDept;
-        }
-
-        if (recipientPhone) {
-          const cleanPhone = recipientPhone.replace(/[^0-9]/g, '');
+      if (!error && assignType === 'department') {
+        const recDept = departmentsData.find(d => d.name === targetDept);
+        if (recDept && recDept.phone) {
+          const cleanPhone = recDept.phone.replace(/[^0-9]/g, '');
           const msgLines = [
             "Assalamu Alaikum,",
-            "To: *" + recipientName + "*",
+            "To: *" + targetDept + "*",
             "",
             "പുതിയൊരു ടാസ്ക് താങ്കളെ ഏൽപ്പിച്ചിട്ടുണ്ട്:",
             "📌 *Task:* " + title,
@@ -961,8 +1059,12 @@
 
           const finalMsg = encodeURIComponent(msgLines.join("\n"));
           document.getElementById('notifyTitle').innerText = "Task Assigned Successfully!";
-          document.getElementById('notifyDesc').innerText = `${recipientName}-ലേക്ക് ഈ ടാസ്ക് വിവരങ്ങൾ ഇപ്പോൾ തന്നെ WhatsApp സന്ദേശമായി അയക്കാം.`;
-          document.getElementById('notifyWaBtn').href = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${finalMsg}`;
+          document.getElementById('notifyDesc').innerText = `${targetDept}-ലേക്ക് ഈ ടാസ്ക് വിവരങ്ങൾ ഇപ്പോൾ തന്നെ WhatsApp സന്ദേശമായി അയക്കാം.`;
+          document.getElementById('notifyButtonsList').innerHTML = `
+            <a href="https://api.whatsapp.com/send?phone=${cleanPhone}&text=${finalMsg}" target="_blank" onclick="closeModal('notifyModal')" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow">
+              💬 Open WhatsApp (${targetDept})
+            </a>
+          `;
           openModal('notifyModal');
         }
       }
@@ -1101,7 +1203,11 @@
           const finalMsg = encodeURIComponent(msgLines.join("\n"));
           document.getElementById('notifyTitle').innerText = "Task Marked as Done!";
           document.getElementById('notifyDesc').innerText = `ഈ ടാസ്ക് പൂർത്തിയായ വിവരം ${task.assigned_by}-നെ WhatsApp വഴി അറിയിക്കാം.`;
-          document.getElementById('notifyWaBtn').href = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${finalMsg}`;
+          document.getElementById('notifyButtonsList').innerHTML = `
+            <a href="https://api.whatsapp.com/send?phone=${cleanPhone}&text=${finalMsg}" target="_blank" onclick="closeModal('notifyModal')" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow">
+              💬 Reply to ${task.assigned_by}
+            </a>
+          `;
           openModal('notifyModal');
         }
       }
@@ -1128,40 +1234,66 @@
       }
     }
 
+    // DIRECTORY MULTI-SELECT FUNCTIONS
     function openDirectoryModal() {
+      isMultiPickerMode = false;
+      document.getElementById("dirMultiConfirmBox").classList.add("hidden");
       renderDirectoryTable(directoryData);
       openModal('directoryModal');
     }
 
-    function openDirectoryPicker(nameInputId, phoneInputId) {
-      dirTargetNameInput = nameInputId;
-      dirTargetPhoneInput = phoneInputId;
-      renderDirectoryTable(directoryData, true);
+    function openMultiDirectoryPicker() {
+      isMultiPickerMode = true;
+      tempDirSelection.clear();
+      selectedExternalPeople.forEach(p => tempDirSelection.set(p.name + "_" + p.phone, p));
+      document.getElementById("dirSelectedCount").innerText = tempDirSelection.size;
+      document.getElementById("dirMultiConfirmBox").classList.remove("hidden");
+      renderDirectoryTable(directoryData);
       openModal('directoryModal');
     }
 
-    function renderDirectoryTable(data, isPicker = false) {
+    function renderDirectoryTable(data) {
       const tbody = document.getElementById("directoryTableBody");
       if (!data || data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">No records found</td></tr>';
         return;
       }
       tbody.innerHTML = data.map(function(item) {
-        let actionBtn = '';
-        if (isPicker) {
-          actionBtn = '<button type="button" onclick="selectFromDirectory(\'' + encodeURIComponent(item.name) + '\', \'' + item.phone + '\')" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg font-bold text-xs hover:bg-emerald-700">Select</button>';
+        const key = item.name + "_" + item.phone;
+        const isChecked = tempDirSelection.has(key) ? "checked" : "";
+
+        let actionCol = '';
+        if (isMultiPickerMode) {
+          actionCol = `<input type="checkbox" ${isChecked} onchange="toggleDirCheckbox('${encodeURIComponent(item.name)}', '${item.phone}', this.checked)" class="w-4 h-4 accent-emerald-600 cursor-pointer">`;
         } else {
-          actionBtn = '<a href="https://wa.me/' + item.phone.replace(/[^0-9]/g,'') + '" target="_blank" class="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-bold text-xs hover:bg-emerald-100">WhatsApp</a>';
+          actionCol = `<a href="https://wa.me/${item.phone.replace(/[^0-9]/g,'')}" target="_blank" class="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-bold text-xs hover:bg-emerald-100">WhatsApp</a>`;
         }
 
-        return '<tr>' +
-          '<td class="p-2.5 font-mono text-slate-500">' + (item.staff_id || '-') + '</td>' +
-          '<td class="p-2.5 font-bold text-slate-800">' + item.name + '</td>' +
-          '<td class="p-2.5 text-slate-600">' + (item.institution_dept || '-') + '</td>' +
-          '<td class="p-2.5 font-mono text-slate-700">' + item.phone + '</td>' +
-          '<td class="p-2.5 text-right">' + actionBtn + '</td>' +
-        '</tr>';
+        return `<tr class="${isMultiPickerMode ? 'hover:bg-indigo-50/50 cursor-pointer' : ''}">
+          <td class="p-2.5 font-mono text-slate-500">${item.staff_id || '-'}</td>
+          <td class="p-2.5 font-bold text-slate-800">${item.name}</td>
+          <td class="p-2.5 text-slate-600">${item.institution_dept || '-'}</td>
+          <td class="p-2.5 font-mono text-slate-700">${item.phone}</td>
+          <td class="p-2.5 text-right">${actionCol}</td>
+        </tr>`;
       }).join('');
+    }
+
+    function toggleDirCheckbox(nameEncoded, phone, checked) {
+      const name = decodeURIComponent(nameEncoded);
+      const key = name + "_" + phone;
+      if (checked) {
+        tempDirSelection.set(key, { name: name, phone: phone });
+      } else {
+        tempDirSelection.delete(key);
+      }
+      document.getElementById("dirSelectedCount").innerText = tempDirSelection.size;
+    }
+
+    function confirmMultiDirectorySelection() {
+      selectedExternalPeople = Array.from(tempDirSelection.values());
+      renderSelectedExternalChips();
+      closeModal('directoryModal');
     }
 
     function filterDirectoryTable() {
@@ -1172,17 +1304,7 @@
                (d.institution_dept && d.institution_dept.toLowerCase().includes(q)) ||
                (d.phone && d.phone.includes(q));
       });
-      renderDirectoryTable(filtered, !!dirTargetNameInput);
-    }
-
-    function selectFromDirectory(nameEncoded, phone) {
-      if (dirTargetNameInput && dirTargetPhoneInput) {
-        document.getElementById(dirTargetNameInput).value = decodeURIComponent(nameEncoded);
-        document.getElementById(dirTargetPhoneInput).value = phone;
-        dirTargetNameInput = '';
-        dirTargetPhoneInput = '';
-      }
-      closeModal('directoryModal');
+      renderDirectoryTable(filtered);
     }
 
     async function addNewDirectoryItem() {
